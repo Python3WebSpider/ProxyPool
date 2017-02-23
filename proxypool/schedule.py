@@ -12,10 +12,9 @@ import time
 from multiprocessing import Process
 import asyncio
 import aiohttp
-
 from .db import RedisClient
 from .error import ResourceDepletionError
-from .proxyGetter import FreeProxyGetter
+from .getter import FreeProxyGetter
 from .setting import *
 
 
@@ -24,7 +23,7 @@ class ValidityTester(object):
     检验器，负责对未知的代理进行异步检测。
     """
     # 用百度的首页来检验
-    test_api = 'https://www.baidu.com'
+    test_api = 'http://www.baidu.com'
 
     def __init__(self):
         self._raw_proxies = None
@@ -42,7 +41,10 @@ class ValidityTester(object):
         async with aiohttp.ClientSession() as session:
             try:
                 real_proxy = 'http://' + proxy
-                async with session.get(self.test_api, proxy=real_proxy, timeout=15) as resp:
+                print('Testing', real_proxy)
+                async with session.get(self.test_api, proxy=real_proxy, timeout=15) as response:
+                    await response
+                    print('Response from', proxy)
                     self._usable_proxies.append(proxy)
             except Exception:
                 pass
@@ -79,24 +81,22 @@ class PoolAdder(object):
         else:
             return False
 
-    def add_to_queue(self, flag=40):
+    def add_to_queue(self):
         """
         命令爬虫抓取一定量未检测的代理，然后检测，将通过检测的代理
         加入到代理池中。
         """
         print('PoolAdder is working')
-        while not self.is_over_threshold():
+        proxy_count = 0
+        if not self.is_over_threshold():
             for callback_label in range(self._crawler.__CrawlFuncCount__):
                 callback = self._crawler.__CrawlFunc__[callback_label]
-                raw_proxies = self._crawler.get_raw_proxies(callback, flag)
+                raw_proxies = self._crawler.get_raw_proxies(callback)
                 self._tester.set_raw_proxies(raw_proxies)
                 self._tester.test()
                 self._conn.put_many(self._tester.get_usable_proxies())
-                if self.is_over_threshold():
-                    break
-
-            flag += flag
-            if flag >= 10 * flag:
+                proxy_count += len(raw_proxies)
+            if proxy_count == 0:
                 raise ResourceDepletionError
 
 

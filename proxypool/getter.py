@@ -48,9 +48,6 @@ class FreeProxyGetter(object, metaclass=ProxyMetaclass):
         print('Callback', callback)
         for proxy in eval("self.{}()".format(callback)):
             proxies.append(proxy)
-            print(callback, proxy)
-            if len(proxies) >= count:
-                break
         return proxies
 
     def crawl_daili66(self, page_count=4):
