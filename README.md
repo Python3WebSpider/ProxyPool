@@ -1,18 +1,4 @@
 # ProxyPool
-[![Build Status](https://travis-ci.org/WiseDoge/ProxyPool.svg?branch=master)](https://travis-ci.org/WiseDoge/ProxyPool)   
-跨语言高性能IP代理池，Python实现。    
-
-注意：请运行程序前先更新一下抓取代理的函数。
-
-## 运行环境
-
-* Python 3.5
-
-  (请务必保证Python的版本在3.5以上，否则异步检验无法使用。)
-
-* Redis 
-
-  Redis官网并没有提供Windows的安装版，Windows用户可以[点击此处](http://pan.baidu.com/s/1kVe6lc7)下载一个我自己编译的二进制版本(3.2版本2.7MB，VS 2015编译)。
 
 ## 安装
 
@@ -21,8 +7,6 @@
 #### 安装依赖
 
 `$ pip install -r requirements.txt`
-
-*Windows用户如果无法安装lxml库请[点击这里](http://www.lfd.uci.edu/~gohlke/pythonlibs/)*。
 
 #### 打开代理池和API
 
@@ -42,23 +26,6 @@
 
 `$ proxypool_run`
 
-### ③ 使用二进制包
-
-Windows 用户可以[点击此处](http://pan.baidu.com/s/1c1XsVEo)获取此程序的二进制包，直接运行。
-
-## 使用API获取代理
-
-访问`http://127.0.0.1:5000/`进入主页，如果显示'Welcome'，证明成功启动。
-
-![pic](docs/1.png)
-
-访问`http://127.0.0.1:5000/get`可以获取一个可用代理。  
-
-![pic](docs/3.png)
-
-访问`http://127.0.0.1:5000/count`可以获取代理池中可用代理的数量。  
-
-![pic](docs/2.png)
 
 也可以在程序代码中用相应的语言获取，例如:
 
@@ -133,4 +100,3 @@ def get_proxy():
 
   > 设置
 
-![picture](docs/4.png)
