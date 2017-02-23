@@ -15,6 +15,7 @@ class RedisClient(object):
         """从Pool中获取一定量数据。"""
         proxies = self._db.lrange("proxies", 0, count - 1)
         self._db.ltrim("proxies", count, -1)
+        print(proxies)
         return proxies
 
     def put(self, proxy):
@@ -37,7 +38,7 @@ class RedisClient(object):
         """弹出一个可用代理。
         """
         try:
-            return self._db.blpop("proxies", 30)[1].decode('utf-8')
+            return self._db.rpop("proxies").decode('utf-8')
         except:
             raise PoolEmptyError
 
@@ -55,4 +56,4 @@ class RedisClient(object):
 
 if __name__ == '__main__':
     conn = RedisClient()
-    print(conn.get(20))
+    print(conn.pop())

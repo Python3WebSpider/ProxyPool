@@ -2,10 +2,12 @@ import time
 from multiprocessing import Process
 import asyncio
 import aiohttp
+from aiohttp.errors import ProxyConnectionError
 from proxypool.db import RedisClient
 from proxypool.error import ResourceDepletionError
 from proxypool.getter import FreeProxyGetter
 from proxypool.setting import *
+from asyncio import TimeoutError
 
 
 class ValidityTester(object):
@@ -32,13 +34,15 @@ class ValidityTester(object):
         """
         async with aiohttp.ClientSession() as session:
             try:
+                if isinstance(proxy, bytes):
+                    proxy = proxy.decode('utf-8')
                 real_proxy = 'http://' + proxy
-                print('Testing', real_proxy)
+                print('Testing', proxy)
                 async with session.get(self.test_api, proxy=real_proxy, timeout=15) as response:
-                    await response
-                    self._usable_proxies.append(proxy)
-                    print('Valid proxy', proxy)
-            except Exception:
+                    if response.status == 200:
+                        self._usable_proxies.append(proxy)
+                        print('Valid proxy', proxy)
+            except (ProxyConnectionError, TimeoutError):
                 print('Invalid proxy', proxy)
 
     def test(self):
@@ -46,9 +50,12 @@ class ValidityTester(object):
         异步检测_raw_proxies中的全部代理。
         """
         print('ValidityTester is working')
-        loop = asyncio.get_event_loop()
-        tasks = [self.test_single_proxy(proxy) for proxy in self._raw_proxies]
-        loop.run_until_complete(asyncio.wait(tasks))
+        try:
+            loop = asyncio.get_event_loop()
+            tasks = [self.test_single_proxy(proxy) for proxy in self._raw_proxies]
+            loop.run_until_complete(asyncio.wait(tasks))
+        except ValueError:
+            print('Async Error')
 
     def get_usable_proxies(self):
         return self._usable_proxies
@@ -81,11 +88,18 @@ class PoolAdder(object):
         """
         print('PoolAdder is working')
         proxy_count = 0
-        if not self.is_over_threshold():
+        while not self.is_over_threshold():
             for callback_label in range(self._crawler.__CrawlFuncCount__):
                 callback = self._crawler.__CrawlFunc__[callback_label]
                 raw_proxies = self._crawler.get_raw_proxies(callback)
+                self._tester.set_raw_proxies(raw_proxies)
+                self._tester.test()
+                proxies = self._tester.get_usable_proxies()
+                self._conn.put_many(proxies)
                 proxy_count += len(raw_proxies)
+                if self.is_over_threshold():
+                    print('IP is enough, waiting to be used')
+                    break
             if proxy_count == 0:
                 raise ResourceDepletionError
 
@@ -100,20 +114,23 @@ class Schedule(object):
         """
         对已经如池的代理进行检测，防止池中的代理因长期
         不使用而过期。
-        抽出代理池队列中前1/4的代理，检测，合格者压入队列尾。
+        抽出代理池队列中前1/2的代理，检测，合格者压入队列尾。
         """
         conn = RedisClient()
         tester = ValidityTester()
         while True:
-            time.sleep(cycle)
-            count = int(0.25 * conn.queue_len)
+            print('Refreshing ip')
+            count = int(0.5 * conn.queue_len)
             if count == 0:
+                print('Waiting for adding')
+                time.sleep(cycle)
                 continue
             raw_proxies = conn.get(count)
             tester.set_raw_proxies(raw_proxies)
             tester.test()
             proxies = tester.get_usable_proxies()
             conn.put_many(proxies)
+            time.sleep(cycle)
 
     @staticmethod
     def check_pool(lower_threshold=POOL_LOWER_THRESHOLD,
@@ -134,6 +151,7 @@ class Schedule(object):
         """
         运行调度器，创建两个进程，对代理池进行维护。
         """
+        print('Ip processing running')
         valid_process = Process(target=Schedule.valid_proxy)
         check_process = Process(target=Schedule.check_pool)
         valid_process.start()

@@ -32,6 +32,7 @@ class FreeProxyGetter(object, metaclass=ProxyMetaclass):
         proxies = []
         print('Callback', callback)
         for proxy in eval("self.{}()".format(callback)):
+            print('Getting', proxy, 'from', callback)
             proxies.append(proxy)
         return proxies
 
