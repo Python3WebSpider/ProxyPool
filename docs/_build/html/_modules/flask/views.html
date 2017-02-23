@@ -1,0 +1,237 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>flask.views &#8212; proxypool  documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="top" title="proxypool  documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for flask.views</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    flask.views</span>
+<span class="sd">    ~~~~~~~~~~~</span>
+
+<span class="sd">    This module provides class-based views inspired by the ones in Django.</span>
+
+<span class="sd">    :copyright: (c) 2015 by Armin Ronacher.</span>
+<span class="sd">    :license: BSD, see LICENSE for more details.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">.globals</span> <span class="k">import</span> <span class="n">request</span>
+<span class="kn">from</span> <span class="nn">._compat</span> <span class="k">import</span> <span class="n">with_metaclass</span>
+
+
+<span class="n">http_method_funcs</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="s1">&#39;get&#39;</span><span class="p">,</span> <span class="s1">&#39;post&#39;</span><span class="p">,</span> <span class="s1">&#39;head&#39;</span><span class="p">,</span> <span class="s1">&#39;options&#39;</span><span class="p">,</span>
+                               <span class="s1">&#39;delete&#39;</span><span class="p">,</span> <span class="s1">&#39;put&#39;</span><span class="p">,</span> <span class="s1">&#39;trace&#39;</span><span class="p">,</span> <span class="s1">&#39;patch&#39;</span><span class="p">])</span>
+
+
+<div class="viewcode-block" id="View"><a class="viewcode-back" href="../../flask/flask.html#flask.views.View">[docs]</a><span class="k">class</span> <span class="nc">View</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Alternative way to use view functions.  A subclass has to implement</span>
+<span class="sd">    :meth:`dispatch_request` which is called with the view arguments from</span>
+<span class="sd">    the URL routing system.  If :attr:`methods` is provided the methods</span>
+<span class="sd">    do not have to be passed to the :meth:`~flask.Flask.add_url_rule`</span>
+<span class="sd">    method explicitly::</span>
+
+<span class="sd">        class MyView(View):</span>
+<span class="sd">            methods = [&#39;GET&#39;]</span>
+
+<span class="sd">            def dispatch_request(self, name):</span>
+<span class="sd">                return &#39;Hello %s!&#39; % name</span>
+
+<span class="sd">        app.add_url_rule(&#39;/hello/&lt;name&gt;&#39;, view_func=MyView.as_view(&#39;myview&#39;))</span>
+
+<span class="sd">    When you want to decorate a pluggable view you will have to either do that</span>
+<span class="sd">    when the view function is created (by wrapping the return value of</span>
+<span class="sd">    :meth:`as_view`) or you can use the :attr:`decorators` attribute::</span>
+
+<span class="sd">        class SecretView(View):</span>
+<span class="sd">            methods = [&#39;GET&#39;]</span>
+<span class="sd">            decorators = [superuser_required]</span>
+
+<span class="sd">            def dispatch_request(self):</span>
+<span class="sd">                ...</span>
+
+<span class="sd">    The decorators stored in the decorators list are applied one after another</span>
+<span class="sd">    when the view function is created.  Note that you can *not* use the class</span>
+<span class="sd">    based decorators since those would decorate the view class and not the</span>
+<span class="sd">    generated view function!</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1">#: A list of methods this view can handle.</span>
+    <span class="n">methods</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1">#: The canonical way to decorate class-based views is to decorate the</span>
+    <span class="c1">#: return value of as_view().  However since this moves parts of the</span>
+    <span class="c1">#: logic from the class declaration to the place where it&#39;s hooked</span>
+    <span class="c1">#: into the routing system.</span>
+    <span class="c1">#:</span>
+    <span class="c1">#: You can place one or more decorators in this list and whenever the</span>
+    <span class="c1">#: view function is created the result is automatically decorated.</span>
+    <span class="c1">#:</span>
+    <span class="c1">#: .. versionadded:: 0.8</span>
+    <span class="n">decorators</span> <span class="o">=</span> <span class="p">()</span>
+
+<div class="viewcode-block" id="View.dispatch_request"><a class="viewcode-back" href="../../flask/flask.html#flask.views.View.dispatch_request">[docs]</a>    <span class="k">def</span> <span class="nf">dispatch_request</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Subclasses have to override this method to implement the</span>
+<span class="sd">        actual view function code.  This method is called with all</span>
+<span class="sd">        the arguments from the URL rule.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="View.as_view"><a class="viewcode-back" href="../../flask/flask.html#flask.views.View.as_view">[docs]</a>    <span class="k">def</span> <span class="nf">as_view</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">class_args</span><span class="p">,</span> <span class="o">**</span><span class="n">class_kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Converts the class into an actual view function that can be used</span>
+<span class="sd">        with the routing system.  Internally this generates a function on the</span>
+<span class="sd">        fly which will instantiate the :class:`View` on each request and call</span>
+<span class="sd">        the :meth:`dispatch_request` method on it.</span>
+
+<span class="sd">        The arguments passed to :meth:`as_view` are forwarded to the</span>
+<span class="sd">        constructor of the class.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">def</span> <span class="nf">view</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="bp">self</span> <span class="o">=</span> <span class="n">view</span><span class="o">.</span><span class="n">view_class</span><span class="p">(</span><span class="o">*</span><span class="n">class_args</span><span class="p">,</span> <span class="o">**</span><span class="n">class_kwargs</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dispatch_request</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">cls</span><span class="o">.</span><span class="n">decorators</span><span class="p">:</span>
+            <span class="n">view</span><span class="o">.</span><span class="n">__name__</span> <span class="o">=</span> <span class="n">name</span>
+            <span class="n">view</span><span class="o">.</span><span class="n">__module__</span> <span class="o">=</span> <span class="n">cls</span><span class="o">.</span><span class="n">__module__</span>
+            <span class="k">for</span> <span class="n">decorator</span> <span class="ow">in</span> <span class="n">cls</span><span class="o">.</span><span class="n">decorators</span><span class="p">:</span>
+                <span class="n">view</span> <span class="o">=</span> <span class="n">decorator</span><span class="p">(</span><span class="n">view</span><span class="p">)</span>
+
+        <span class="c1"># We attach the view class to the view function for two reasons:</span>
+        <span class="c1"># first of all it allows us to easily figure out what class-based</span>
+        <span class="c1"># view this thing came from, secondly it&#39;s also used for instantiating</span>
+        <span class="c1"># the view class so you can actually replace it with something else</span>
+        <span class="c1"># for testing purposes and debugging.</span>
+        <span class="n">view</span><span class="o">.</span><span class="n">view_class</span> <span class="o">=</span> <span class="n">cls</span>
+        <span class="n">view</span><span class="o">.</span><span class="n">__name__</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="n">view</span><span class="o">.</span><span class="n">__doc__</span> <span class="o">=</span> <span class="n">cls</span><span class="o">.</span><span class="n">__doc__</span>
+        <span class="n">view</span><span class="o">.</span><span class="n">__module__</span> <span class="o">=</span> <span class="n">cls</span><span class="o">.</span><span class="n">__module__</span>
+        <span class="n">view</span><span class="o">.</span><span class="n">methods</span> <span class="o">=</span> <span class="n">cls</span><span class="o">.</span><span class="n">methods</span>
+        <span class="k">return</span> <span class="n">view</span></div></div>
+
+
+<div class="viewcode-block" id="MethodViewType"><a class="viewcode-back" href="../../flask/flask.html#flask.views.MethodViewType">[docs]</a><span class="k">class</span> <span class="nc">MethodViewType</span><span class="p">(</span><span class="nb">type</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">bases</span><span class="p">,</span> <span class="n">d</span><span class="p">):</span>
+        <span class="n">rv</span> <span class="o">=</span> <span class="nb">type</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">bases</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s1">&#39;methods&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">d</span><span class="p">:</span>
+            <span class="n">methods</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">rv</span><span class="o">.</span><span class="n">methods</span> <span class="ow">or</span> <span class="p">[])</span>
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">d</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">http_method_funcs</span><span class="p">:</span>
+                    <span class="n">methods</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">key</span><span class="o">.</span><span class="n">upper</span><span class="p">())</span>
+            <span class="c1"># If we have no method at all in there we don&#39;t want to</span>
+            <span class="c1"># add a method list.  (This is for instance the case for</span>
+            <span class="c1"># the base class or another subclass of a base method view</span>
+            <span class="c1"># that does not introduce new methods).</span>
+            <span class="k">if</span> <span class="n">methods</span><span class="p">:</span>
+                <span class="n">rv</span><span class="o">.</span><span class="n">methods</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">methods</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">rv</span></div>
+
+
+<div class="viewcode-block" id="MethodView"><a class="viewcode-back" href="../../flask/flask.html#flask.views.MethodView">[docs]</a><span class="k">class</span> <span class="nc">MethodView</span><span class="p">(</span><span class="n">with_metaclass</span><span class="p">(</span><span class="n">MethodViewType</span><span class="p">,</span> <span class="n">View</span><span class="p">)):</span>
+    <span class="sd">&quot;&quot;&quot;Like a regular class-based view but that dispatches requests to</span>
+<span class="sd">    particular methods.  For instance if you implement a method called</span>
+<span class="sd">    :meth:`get` it means you will response to ``&#39;GET&#39;`` requests and</span>
+<span class="sd">    the :meth:`dispatch_request` implementation will automatically</span>
+<span class="sd">    forward your request to that.  Also :attr:`options` is set for you</span>
+<span class="sd">    automatically::</span>
+
+<span class="sd">        class CounterAPI(MethodView):</span>
+
+<span class="sd">            def get(self):</span>
+<span class="sd">                return session.get(&#39;counter&#39;, 0)</span>
+
+<span class="sd">            def post(self):</span>
+<span class="sd">                session[&#39;counter&#39;] = session.get(&#39;counter&#39;, 0) + 1</span>
+<span class="sd">                return &#39;OK&#39;</span>
+
+<span class="sd">        app.add_url_rule(&#39;/counter&#39;, view_func=CounterAPI.as_view(&#39;counter&#39;))</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="MethodView.dispatch_request"><a class="viewcode-back" href="../../flask/flask.html#flask.views.MethodView.dispatch_request">[docs]</a>    <span class="k">def</span> <span class="nf">dispatch_request</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">meth</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="c1"># If the request method is HEAD and we don&#39;t have a handler for it</span>
+        <span class="c1"># retry with GET.</span>
+        <span class="k">if</span> <span class="n">meth</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;HEAD&#39;</span><span class="p">:</span>
+            <span class="n">meth</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;get&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">meth</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Unimplemented method </span><span class="si">%r</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span>
+        <span class="k">return</span> <span class="n">meth</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Author.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.8</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

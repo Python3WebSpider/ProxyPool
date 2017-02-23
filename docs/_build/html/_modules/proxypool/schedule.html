@@ -1,0 +1,238 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>proxypool.schedule &#8212; proxypool  documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="top" title="proxypool  documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for proxypool.schedule</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">-------------------------------------------------</span>
+<span class="sd">    File Name:     schedule.py</span>
+<span class="sd">    Description:   调度器模块，</span>
+<span class="sd">                   包含ValidityTester，PoolAdder，</span>
+<span class="sd">                   Schedule三个类，负责维护代理池。</span>
+<span class="sd">    Author:        Liu</span>
+<span class="sd">    Date:          2016/12/9</span>
+<span class="sd">-------------------------------------------------</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">from</span> <span class="nn">multiprocessing</span> <span class="k">import</span> <span class="n">Process</span>
+<span class="kn">import</span> <span class="nn">asyncio</span>
+<span class="kn">import</span> <span class="nn">aiohttp</span>
+
+<span class="kn">from</span> <span class="nn">.db</span> <span class="k">import</span> <span class="n">RedisClient</span>
+<span class="kn">from</span> <span class="nn">.error</span> <span class="k">import</span> <span class="n">ResourceDepletionError</span>
+<span class="kn">from</span> <span class="nn">.proxyGetter</span> <span class="k">import</span> <span class="n">FreeProxyGetter</span>
+<span class="kn">from</span> <span class="nn">.setting</span> <span class="k">import</span> <span class="o">*</span>
+
+
+<div class="viewcode-block" id="ValidityTester"><a class="viewcode-back" href="../../proxypool.html#proxypool.schedule.ValidityTester">[docs]</a><span class="k">class</span> <span class="nc">ValidityTester</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    检验器，负责对未知的代理进行异步检测。</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># 用百度的首页来检验</span>
+    <span class="n">test_api</span> <span class="o">=</span> <span class="s1">&#39;https://www.baidu.com&#39;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_raw_proxies</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_usable_proxies</span> <span class="o">=</span> <span class="p">[]</span>
+
+<div class="viewcode-block" id="ValidityTester.set_raw_proxies"><a class="viewcode-back" href="../../proxypool.html#proxypool.schedule.ValidityTester.set_raw_proxies">[docs]</a>    <span class="k">def</span> <span class="nf">set_raw_proxies</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">proxies</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;设置待检测的代理。</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_raw_proxies</span> <span class="o">=</span> <span class="n">proxies</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_usable_proxies</span> <span class="o">=</span> <span class="p">[]</span></div>
+
+<div class="viewcode-block" id="ValidityTester.test_single_proxy"><a class="viewcode-back" href="../../proxypool.html#proxypool.schedule.ValidityTester.test_single_proxy">[docs]</a>    <span class="k">async</span> <span class="k">def</span> <span class="nf">test_single_proxy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">proxy</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;检测单个代理，如果可用，则将其加入_usable_proxies</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">async</span> <span class="k">with</span> <span class="n">aiohttp</span><span class="o">.</span><span class="n">ClientSession</span><span class="p">()</span> <span class="k">as</span> <span class="n">session</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">real_proxy</span> <span class="o">=</span> <span class="s1">&#39;http://&#39;</span> <span class="o">+</span> <span class="n">proxy</span>
+                <span class="k">async</span> <span class="k">with</span> <span class="n">session</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">test_api</span><span class="p">,</span> <span class="n">proxy</span><span class="o">=</span><span class="n">real_proxy</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span> <span class="k">as</span> <span class="n">resp</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_usable_proxies</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">proxy</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="ValidityTester.test"><a class="viewcode-back" href="../../proxypool.html#proxypool.schedule.ValidityTester.test">[docs]</a>    <span class="k">def</span> <span class="nf">test</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;异步检测_raw_proxies中的全部代理。</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;ValidityTester is working&#39;</span><span class="p">)</span>
+        <span class="n">loop</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">get_event_loop</span><span class="p">()</span>
+        <span class="n">tasks</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">test_single_proxy</span><span class="p">(</span><span class="n">proxy</span><span class="p">)</span> <span class="k">for</span> <span class="n">proxy</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_raw_proxies</span><span class="p">]</span>
+        <span class="n">loop</span><span class="o">.</span><span class="n">run_until_complete</span><span class="p">(</span><span class="n">asyncio</span><span class="o">.</span><span class="n">wait</span><span class="p">(</span><span class="n">tasks</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="ValidityTester.get_usable_proxies"><a class="viewcode-back" href="../../proxypool.html#proxypool.schedule.ValidityTester.get_usable_proxies">[docs]</a>    <span class="k">def</span> <span class="nf">get_usable_proxies</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_usable_proxies</span></div></div>
+
+
+<div class="viewcode-block" id="PoolAdder"><a class="viewcode-back" href="../../proxypool.html#proxypool.schedule.PoolAdder">[docs]</a><span class="k">class</span> <span class="nc">PoolAdder</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    添加器，负责向池中补充代理</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">threshold</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_threshold</span> <span class="o">=</span> <span class="n">threshold</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_conn</span> <span class="o">=</span> <span class="n">RedisClient</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tester</span> <span class="o">=</span> <span class="n">ValidityTester</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_crawler</span> <span class="o">=</span> <span class="n">FreeProxyGetter</span><span class="p">()</span>
+
+<div class="viewcode-block" id="PoolAdder.is_over_threshold"><a class="viewcode-back" href="../../proxypool.html#proxypool.schedule.PoolAdder.is_over_threshold">[docs]</a>    <span class="k">def</span> <span class="nf">is_over_threshold</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        判断代理池中的数据量是否达到阈值。</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_conn</span><span class="o">.</span><span class="n">queue_len</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_threshold</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="PoolAdder.add_to_queue"><a class="viewcode-back" href="../../proxypool.html#proxypool.schedule.PoolAdder.add_to_queue">[docs]</a>    <span class="k">def</span> <span class="nf">add_to_queue</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">flag</span><span class="o">=</span><span class="mi">40</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        命令爬虫抓取一定量未检测的代理，然后检测，将通过检测的代理</span>
+<span class="sd">        加入到代理池中。</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;PoolAdder is working&#39;</span><span class="p">)</span>
+        <span class="k">while</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_over_threshold</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">callback_label</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_crawler</span><span class="o">.</span><span class="n">__CrawlFuncCount__</span><span class="p">):</span>
+                <span class="n">callback</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_crawler</span><span class="o">.</span><span class="n">__CrawlFunc__</span><span class="p">[</span><span class="n">callback_label</span><span class="p">]</span>
+                <span class="n">raw_proxies</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_crawler</span><span class="o">.</span><span class="n">get_raw_proxies</span><span class="p">(</span><span class="n">callback</span><span class="p">,</span> <span class="n">flag</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_tester</span><span class="o">.</span><span class="n">set_raw_proxies</span><span class="p">(</span><span class="n">raw_proxies</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_tester</span><span class="o">.</span><span class="n">test</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_conn</span><span class="o">.</span><span class="n">put_many</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tester</span><span class="o">.</span><span class="n">get_usable_proxies</span><span class="p">())</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_over_threshold</span><span class="p">():</span>
+                    <span class="k">break</span>
+
+            <span class="n">flag</span> <span class="o">+=</span> <span class="n">flag</span>
+            <span class="k">if</span> <span class="n">flag</span> <span class="o">&gt;=</span> <span class="mi">10</span> <span class="o">*</span> <span class="n">flag</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">ResourceDepletionError</span></div></div>
+
+
+<div class="viewcode-block" id="Schedule"><a class="viewcode-back" href="../../proxypool.html#proxypool.schedule.Schedule">[docs]</a><span class="k">class</span> <span class="nc">Schedule</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    总调度器，用于协调各调度器模块</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="Schedule.valid_proxy"><a class="viewcode-back" href="../../proxypool.html#proxypool.schedule.Schedule.valid_proxy">[docs]</a>    <span class="k">def</span> <span class="nf">valid_proxy</span><span class="p">(</span><span class="n">cycle</span><span class="o">=</span><span class="n">VALID_CHECK_CYCLE</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        对已经如池的代理进行检测，防止池中的代理因长期</span>
+<span class="sd">        不使用而过期。</span>
+<span class="sd">        抽出代理池队列中前1/4的代理，检测，合格者压入队列尾。</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">conn</span> <span class="o">=</span> <span class="n">RedisClient</span><span class="p">()</span>
+        <span class="n">tester</span> <span class="o">=</span> <span class="n">ValidityTester</span><span class="p">()</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">cycle</span><span class="p">)</span>
+            <span class="n">count</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="mf">0.25</span> <span class="o">*</span> <span class="n">conn</span><span class="o">.</span><span class="n">queue_len</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">count</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">raw_proxies</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">count</span><span class="p">)</span>
+            <span class="n">tester</span><span class="o">.</span><span class="n">set_raw_proxies</span><span class="p">(</span><span class="n">raw_proxies</span><span class="p">)</span>
+            <span class="n">tester</span><span class="o">.</span><span class="n">test</span><span class="p">()</span>
+            <span class="n">proxies</span> <span class="o">=</span> <span class="n">tester</span><span class="o">.</span><span class="n">get_usable_proxies</span><span class="p">()</span>
+            <span class="n">conn</span><span class="o">.</span><span class="n">put_many</span><span class="p">(</span><span class="n">proxies</span><span class="p">)</span></div>
+
+    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="Schedule.check_pool"><a class="viewcode-back" href="../../proxypool.html#proxypool.schedule.Schedule.check_pool">[docs]</a>    <span class="k">def</span> <span class="nf">check_pool</span><span class="p">(</span><span class="n">lower_threshold</span><span class="o">=</span><span class="n">POOL_LOWER_THRESHOLD</span><span class="p">,</span>
+                   <span class="n">upper_threshold</span><span class="o">=</span><span class="n">POOL_UPPER_THRESHOLD</span><span class="p">,</span>
+                   <span class="n">cycle</span><span class="o">=</span><span class="n">POOL_LEN_CHECK_CYCLE</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        协调添加器，当代理池中可用代理的数量低于下阈值时，触发添加器，启动爬虫</span>
+<span class="sd">        补充代理，当代理达到上阈值时，添加器停止工作。</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">conn</span> <span class="o">=</span> <span class="n">RedisClient</span><span class="p">()</span>
+        <span class="n">adder</span> <span class="o">=</span> <span class="n">PoolAdder</span><span class="p">(</span><span class="n">upper_threshold</span><span class="p">)</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">conn</span><span class="o">.</span><span class="n">queue_len</span> <span class="o">&lt;</span> <span class="n">lower_threshold</span><span class="p">:</span>
+                <span class="n">adder</span><span class="o">.</span><span class="n">add_to_queue</span><span class="p">()</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">cycle</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Schedule.run"><a class="viewcode-back" href="../../proxypool.html#proxypool.schedule.Schedule.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        运行调度器，创建两个进程，对代理池进行维护。</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">valid_process</span> <span class="o">=</span> <span class="n">Process</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">Schedule</span><span class="o">.</span><span class="n">valid_proxy</span><span class="p">)</span>
+        <span class="n">check_process</span> <span class="o">=</span> <span class="n">Process</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">Schedule</span><span class="o">.</span><span class="n">check_pool</span><span class="p">)</span>
+        <span class="n">valid_process</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+        <span class="n">check_process</span><span class="o">.</span><span class="n">start</span><span class="p">()</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Author.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.8</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

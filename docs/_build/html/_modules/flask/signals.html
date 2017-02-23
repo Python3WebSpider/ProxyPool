@@ -1,0 +1,144 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>flask.signals &#8212; proxypool  documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="top" title="proxypool  documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for flask.signals</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    flask.signals</span>
+<span class="sd">    ~~~~~~~~~~~~~</span>
+
+<span class="sd">    Implements signals based on blinker if available, otherwise</span>
+<span class="sd">    falls silently back to a noop.</span>
+
+<span class="sd">    :copyright: (c) 2015 by Armin Ronacher.</span>
+<span class="sd">    :license: BSD, see LICENSE for more details.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="n">signals_available</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">blinker</span> <span class="k">import</span> <span class="n">Namespace</span>
+    <span class="n">signals_available</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+<div class="viewcode-block" id="Namespace"><a class="viewcode-back" href="../../flask/flask.html#flask.signals.Namespace">[docs]</a>    <span class="k">class</span> <span class="nc">Namespace</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="Namespace.signal"><a class="viewcode-back" href="../../flask/flask.html#flask.signals.Namespace.signal">[docs]</a>        <span class="k">def</span> <span class="nf">signal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">doc</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">_FakeSignal</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">doc</span><span class="p">)</span></div></div>
+
+    <span class="k">class</span> <span class="nc">_FakeSignal</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;If blinker is unavailable, create a fake class with the same</span>
+<span class="sd">        interface that allows sending of signals but will fail with an</span>
+<span class="sd">        error on anything else.  Instead of doing anything on send, it</span>
+<span class="sd">        will just ignore the arguments and do nothing instead.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">doc</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__doc__</span> <span class="o">=</span> <span class="n">doc</span>
+        <span class="k">def</span> <span class="nf">_fail</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;signalling support is unavailable &#39;</span>
+                               <span class="s1">&#39;because the blinker library is &#39;</span>
+                               <span class="s1">&#39;not installed.&#39;</span><span class="p">)</span>
+        <span class="n">send</span> <span class="o">=</span> <span class="k">lambda</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">:</span> <span class="kc">None</span>
+        <span class="n">connect</span> <span class="o">=</span> <span class="n">disconnect</span> <span class="o">=</span> <span class="n">has_receivers_for</span> <span class="o">=</span> <span class="n">receivers_for</span> <span class="o">=</span> \
+            <span class="n">temporarily_connected_to</span> <span class="o">=</span> <span class="n">connected_to</span> <span class="o">=</span> <span class="n">_fail</span>
+        <span class="k">del</span> <span class="n">_fail</span>
+
+<span class="c1"># The namespace for code signals.  If you are not flask code, do</span>
+<span class="c1"># not put signals in here.  Create your own namespace instead.</span>
+<span class="n">_signals</span> <span class="o">=</span> <span class="n">Namespace</span><span class="p">()</span>
+
+
+<span class="c1"># Core signals.  For usage examples grep the source code or consult</span>
+<span class="c1"># the API documentation in docs/api.rst as well as docs/signals.rst</span>
+<span class="n">template_rendered</span> <span class="o">=</span> <span class="n">_signals</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="s1">&#39;template-rendered&#39;</span><span class="p">)</span>
+<span class="n">before_render_template</span> <span class="o">=</span> <span class="n">_signals</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="s1">&#39;before-render-template&#39;</span><span class="p">)</span>
+<span class="n">request_started</span> <span class="o">=</span> <span class="n">_signals</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="s1">&#39;request-started&#39;</span><span class="p">)</span>
+<span class="n">request_finished</span> <span class="o">=</span> <span class="n">_signals</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="s1">&#39;request-finished&#39;</span><span class="p">)</span>
+<span class="n">request_tearing_down</span> <span class="o">=</span> <span class="n">_signals</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="s1">&#39;request-tearing-down&#39;</span><span class="p">)</span>
+<span class="n">got_request_exception</span> <span class="o">=</span> <span class="n">_signals</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="s1">&#39;got-request-exception&#39;</span><span class="p">)</span>
+<span class="n">appcontext_tearing_down</span> <span class="o">=</span> <span class="n">_signals</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="s1">&#39;appcontext-tearing-down&#39;</span><span class="p">)</span>
+<span class="n">appcontext_pushed</span> <span class="o">=</span> <span class="n">_signals</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="s1">&#39;appcontext-pushed&#39;</span><span class="p">)</span>
+<span class="n">appcontext_popped</span> <span class="o">=</span> <span class="n">_signals</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="s1">&#39;appcontext-popped&#39;</span><span class="p">)</span>
+<span class="n">message_flashed</span> <span class="o">=</span> <span class="n">_signals</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="s1">&#39;message-flashed&#39;</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Author.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.8</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,4 @@
+*.vscode
+*.pyc
+*.db
+venv

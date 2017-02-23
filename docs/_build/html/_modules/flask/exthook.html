@@ -1,0 +1,231 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>flask.exthook &#8212; proxypool  documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="top" title="proxypool  documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for flask.exthook</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    flask.exthook</span>
+<span class="sd">    ~~~~~~~~~~~~~</span>
+
+<span class="sd">    Redirect imports for extensions.  This module basically makes it possible</span>
+<span class="sd">    for us to transition from flaskext.foo to flask_foo without having to</span>
+<span class="sd">    force all extensions to upgrade at the same time.</span>
+
+<span class="sd">    When a user does ``from flask.ext.foo import bar`` it will attempt to</span>
+<span class="sd">    import ``from flask_foo import bar`` first and when that fails it will</span>
+<span class="sd">    try to import ``from flaskext.foo import bar``.</span>
+
+<span class="sd">    We&#39;re switching from namespace packages because it was just too painful for</span>
+<span class="sd">    everybody involved.</span>
+
+<span class="sd">    This is used by `flask.ext`.</span>
+
+<span class="sd">    :copyright: (c) 2015 by Armin Ronacher.</span>
+<span class="sd">    :license: BSD, see LICENSE for more details.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">from</span> <span class="nn">._compat</span> <span class="k">import</span> <span class="n">reraise</span>
+
+
+<div class="viewcode-block" id="ExtDeprecationWarning"><a class="viewcode-back" href="../../flask/flask.html#flask.exthook.ExtDeprecationWarning">[docs]</a><span class="k">class</span> <span class="nc">ExtDeprecationWarning</span><span class="p">(</span><span class="ne">DeprecationWarning</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+
+<span class="n">warnings</span><span class="o">.</span><span class="n">simplefilter</span><span class="p">(</span><span class="s1">&#39;always&#39;</span><span class="p">,</span> <span class="n">ExtDeprecationWarning</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="ExtensionImporter"><a class="viewcode-back" href="../../flask/flask.html#flask.exthook.ExtensionImporter">[docs]</a><span class="k">class</span> <span class="nc">ExtensionImporter</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;This importer redirects imports from this submodule to other locations.</span>
+<span class="sd">    This makes it possible to transition from the old flaskext.name to the</span>
+<span class="sd">    newer flask_name without people having a hard time.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">module_choices</span><span class="p">,</span> <span class="n">wrapper_module</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">module_choices</span> <span class="o">=</span> <span class="n">module_choices</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wrapper_module</span> <span class="o">=</span> <span class="n">wrapper_module</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="n">wrapper_module</span> <span class="o">+</span> <span class="s1">&#39;.&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prefix_cutoff</span> <span class="o">=</span> <span class="n">wrapper_module</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+
+    <span class="k">def</span> <span class="nf">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__class__</span><span class="o">.</span><span class="n">__module__</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">__class__</span><span class="o">.</span><span class="n">__module__</span> <span class="ow">and</span> \
+               <span class="bp">self</span><span class="o">.</span><span class="n">__class__</span><span class="o">.</span><span class="n">__name__</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">__class__</span><span class="o">.</span><span class="n">__name__</span> <span class="ow">and</span> \
+               <span class="bp">self</span><span class="o">.</span><span class="n">wrapper_module</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">wrapper_module</span> <span class="ow">and</span> \
+               <span class="bp">self</span><span class="o">.</span><span class="n">module_choices</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">module_choices</span>
+
+    <span class="k">def</span> <span class="nf">__ne__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">__eq__</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ExtensionImporter.install"><a class="viewcode-back" href="../../flask/flask.html#flask.exthook.ExtensionImporter.install">[docs]</a>    <span class="k">def</span> <span class="nf">install</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">meta_path</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">sys</span><span class="o">.</span><span class="n">meta_path</span> <span class="k">if</span> <span class="bp">self</span> <span class="o">!=</span> <span class="n">x</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="ExtensionImporter.find_module"><a class="viewcode-back" href="../../flask/flask.html#flask.exthook.ExtensionImporter.find_module">[docs]</a>    <span class="k">def</span> <span class="nf">find_module</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fullname</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">fullname</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="p">)</span> <span class="ow">and</span> \
+           <span class="n">fullname</span> <span class="o">!=</span> <span class="s1">&#39;flask.ext.ExtDeprecationWarning&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="ExtensionImporter.load_module"><a class="viewcode-back" href="../../flask/flask.html#flask.exthook.ExtensionImporter.load_module">[docs]</a>    <span class="k">def</span> <span class="nf">load_module</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fullname</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">fullname</span> <span class="ow">in</span> <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="n">fullname</span><span class="p">]</span>
+
+        <span class="n">modname</span> <span class="o">=</span> <span class="n">fullname</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefix_cutoff</span><span class="p">)[</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix_cutoff</span><span class="p">]</span>
+
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="s2">&quot;Importing flask.ext.</span><span class="si">{x}</span><span class="s2"> is deprecated, use flask_</span><span class="si">{x}</span><span class="s2"> instead.&quot;</span>
+            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">modname</span><span class="p">),</span> <span class="n">ExtDeprecationWarning</span>
+        <span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">module_choices</span><span class="p">:</span>
+            <span class="n">realname</span> <span class="o">=</span> <span class="n">path</span> <span class="o">%</span> <span class="n">modname</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="nb">__import__</span><span class="p">(</span><span class="n">realname</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+                <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_value</span><span class="p">,</span> <span class="n">tb</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">()</span>
+                <span class="c1"># since we only establish the entry in sys.modules at the</span>
+                <span class="c1"># very this seems to be redundant, but if recursive imports</span>
+                <span class="c1"># happen we will call into the move import a second time.</span>
+                <span class="c1"># On the second invocation we still don&#39;t have an entry for</span>
+                <span class="c1"># fullname in sys.modules, but we will end up with the same</span>
+                <span class="c1"># fake module name and that import will succeed since this</span>
+                <span class="c1"># one already has a temporary entry in the modules dict.</span>
+                <span class="c1"># Since this one &quot;succeeded&quot; temporarily that second</span>
+                <span class="c1"># invocation now will have created a fullname entry in</span>
+                <span class="c1"># sys.modules which we have to kill.</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">fullname</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+                <span class="c1"># If it&#39;s an important traceback we reraise it, otherwise</span>
+                <span class="c1"># we swallow it and try the next choice.  The skipped frame</span>
+                <span class="c1"># is the one from __import__ above which we don&#39;t care about</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_important_traceback</span><span class="p">(</span><span class="n">realname</span><span class="p">,</span> <span class="n">tb</span><span class="p">):</span>
+                    <span class="n">reraise</span><span class="p">(</span><span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_value</span><span class="p">,</span> <span class="n">tb</span><span class="o">.</span><span class="n">tb_next</span><span class="p">)</span>
+                <span class="k">continue</span>
+            <span class="n">module</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="n">fullname</span><span class="p">]</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="n">realname</span><span class="p">]</span>
+            <span class="k">if</span> <span class="s1">&#39;.&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">modname</span><span class="p">:</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">wrapper_module</span><span class="p">],</span> <span class="n">modname</span><span class="p">,</span> <span class="n">module</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">realname</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;flaskext.&#39;</span><span class="p">):</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                    <span class="s2">&quot;Detected extension named flaskext.</span><span class="si">{x}</span><span class="s2">, please rename it &quot;</span>
+                    <span class="s2">&quot;to flask_</span><span class="si">{x}</span><span class="s2">. The old form is deprecated.&quot;</span>
+                    <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">modname</span><span class="p">),</span> <span class="n">ExtDeprecationWarning</span>
+                <span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">module</span>
+        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="s1">&#39;No module named </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">fullname</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ExtensionImporter.is_important_traceback"><a class="viewcode-back" href="../../flask/flask.html#flask.exthook.ExtensionImporter.is_important_traceback">[docs]</a>    <span class="k">def</span> <span class="nf">is_important_traceback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">important_module</span><span class="p">,</span> <span class="n">tb</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Walks a traceback&#39;s frames and checks if any of the frames</span>
+<span class="sd">        originated in the given important module.  If that is the case then we</span>
+<span class="sd">        were able to import the module itself but apparently something went</span>
+<span class="sd">        wrong when the module was imported.  (Eg: import of an import failed).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">while</span> <span class="n">tb</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_important_frame</span><span class="p">(</span><span class="n">important_module</span><span class="p">,</span> <span class="n">tb</span><span class="p">):</span>
+                <span class="k">return</span> <span class="kc">True</span>
+            <span class="n">tb</span> <span class="o">=</span> <span class="n">tb</span><span class="o">.</span><span class="n">tb_next</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="ExtensionImporter.is_important_frame"><a class="viewcode-back" href="../../flask/flask.html#flask.exthook.ExtensionImporter.is_important_frame">[docs]</a>    <span class="k">def</span> <span class="nf">is_important_frame</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">important_module</span><span class="p">,</span> <span class="n">tb</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Checks a single frame if it&#39;s important.&quot;&quot;&quot;</span>
+        <span class="n">g</span> <span class="o">=</span> <span class="n">tb</span><span class="o">.</span><span class="n">tb_frame</span><span class="o">.</span><span class="n">f_globals</span>
+        <span class="k">if</span> <span class="s1">&#39;__name__&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">g</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="n">module_name</span> <span class="o">=</span> <span class="n">g</span><span class="p">[</span><span class="s1">&#39;__name__&#39;</span><span class="p">]</span>
+
+        <span class="c1"># Python 2.7 Behavior.  Modules are cleaned up late so the</span>
+        <span class="c1"># name shows up properly here.  Success!</span>
+        <span class="k">if</span> <span class="n">module_name</span> <span class="o">==</span> <span class="n">important_module</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+
+        <span class="c1"># Some python versions will clean up modules so early that the</span>
+        <span class="c1"># module name at that point is no longer set.  Try guessing from</span>
+        <span class="c1"># the filename then.</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">tb</span><span class="o">.</span><span class="n">tb_frame</span><span class="o">.</span><span class="n">f_code</span><span class="o">.</span><span class="n">co_filename</span><span class="p">)</span>
+        <span class="n">test_string</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">sep</span> <span class="o">+</span> <span class="n">important_module</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">sep</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">test_string</span> <span class="o">+</span> <span class="s1">&#39;.py&#39;</span> <span class="ow">in</span> <span class="n">filename</span> <span class="ow">or</span> \
+               <span class="n">test_string</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">sep</span> <span class="o">+</span> <span class="s1">&#39;__init__.py&#39;</span> <span class="ow">in</span> <span class="n">filename</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Author.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.8</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

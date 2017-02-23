@@ -1,0 +1,360 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>flask.json &#8212; proxypool  documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="top" title="proxypool  documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for flask.json</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    flask.jsonimpl</span>
+<span class="sd">    ~~~~~~~~~~~~~~</span>
+
+<span class="sd">    Implementation helpers for the JSON support in Flask.</span>
+
+<span class="sd">    :copyright: (c) 2015 by Armin Ronacher.</span>
+<span class="sd">    :license: BSD, see LICENSE for more details.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">io</span>
+<span class="kn">import</span> <span class="nn">uuid</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">date</span>
+<span class="kn">from</span> <span class="nn">.globals</span> <span class="k">import</span> <span class="n">current_app</span><span class="p">,</span> <span class="n">request</span>
+<span class="kn">from</span> <span class="nn">._compat</span> <span class="k">import</span> <span class="n">text_type</span><span class="p">,</span> <span class="n">PY2</span>
+
+<span class="kn">from</span> <span class="nn">werkzeug.http</span> <span class="k">import</span> <span class="n">http_date</span>
+<span class="kn">from</span> <span class="nn">jinja2</span> <span class="k">import</span> <span class="n">Markup</span>
+
+<span class="c1"># Use the same json implementation as itsdangerous on which we</span>
+<span class="c1"># depend anyways.</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">itsdangerous</span> <span class="k">import</span> <span class="n">simplejson</span> <span class="k">as</span> <span class="n">_json</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">itsdangerous</span> <span class="k">import</span> <span class="n">json</span> <span class="k">as</span> <span class="n">_json</span>
+
+
+<span class="c1"># Figure out if simplejson escapes slashes.  This behavior was changed</span>
+<span class="c1"># from one version to another without reason.</span>
+<span class="n">_slash_escape</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\\</span><span class="s1">/&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)</span>
+
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;dump&#39;</span><span class="p">,</span> <span class="s1">&#39;dumps&#39;</span><span class="p">,</span> <span class="s1">&#39;load&#39;</span><span class="p">,</span> <span class="s1">&#39;loads&#39;</span><span class="p">,</span> <span class="s1">&#39;htmlsafe_dump&#39;</span><span class="p">,</span>
+           <span class="s1">&#39;htmlsafe_dumps&#39;</span><span class="p">,</span> <span class="s1">&#39;JSONDecoder&#39;</span><span class="p">,</span> <span class="s1">&#39;JSONEncoder&#39;</span><span class="p">,</span>
+           <span class="s1">&#39;jsonify&#39;</span><span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">_wrap_reader_for_text</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="n">encoding</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fp</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="nb">bytes</span><span class="p">):</span>
+        <span class="n">fp</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">TextIOWrapper</span><span class="p">(</span><span class="n">io</span><span class="o">.</span><span class="n">BufferedReader</span><span class="p">(</span><span class="n">fp</span><span class="p">),</span> <span class="n">encoding</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">fp</span>
+
+
+<span class="k">def</span> <span class="nf">_wrap_writer_for_text</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="n">encoding</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+        <span class="n">fp</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">TextIOWrapper</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="n">encoding</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">fp</span>
+
+
+<div class="viewcode-block" id="JSONEncoder"><a class="viewcode-back" href="../../flask/flask.html#flask.app.JSONEncoder">[docs]</a><span class="k">class</span> <span class="nc">JSONEncoder</span><span class="p">(</span><span class="n">_json</span><span class="o">.</span><span class="n">JSONEncoder</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The default Flask JSON encoder.  This one extends the default simplejson</span>
+<span class="sd">    encoder by also supporting ``datetime`` objects, ``UUID`` as well as</span>
+<span class="sd">    ``Markup`` objects which are serialized as RFC 822 datetime strings (same</span>
+<span class="sd">    as the HTTP date format).  In order to support more data types override the</span>
+<span class="sd">    :meth:`default` method.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="JSONEncoder.default"><a class="viewcode-back" href="../../flask/flask.html#flask.app.JSONEncoder.default">[docs]</a>    <span class="k">def</span> <span class="nf">default</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">o</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Implement this method in a subclass such that it returns a</span>
+<span class="sd">        serializable object for ``o``, or calls the base implementation (to</span>
+<span class="sd">        raise a :exc:`TypeError`).</span>
+
+<span class="sd">        For example, to support arbitrary iterators, you could implement</span>
+<span class="sd">        default like this::</span>
+
+<span class="sd">            def default(self, o):</span>
+<span class="sd">                try:</span>
+<span class="sd">                    iterable = iter(o)</span>
+<span class="sd">                except TypeError:</span>
+<span class="sd">                    pass</span>
+<span class="sd">                else:</span>
+<span class="sd">                    return list(iterable)</span>
+<span class="sd">                return JSONEncoder.default(self, o)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="n">date</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">http_date</span><span class="p">(</span><span class="n">o</span><span class="o">.</span><span class="n">timetuple</span><span class="p">())</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="n">uuid</span><span class="o">.</span><span class="n">UUID</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">o</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="s1">&#39;__html__&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">text_type</span><span class="p">(</span><span class="n">o</span><span class="o">.</span><span class="n">__html__</span><span class="p">())</span>
+        <span class="k">return</span> <span class="n">_json</span><span class="o">.</span><span class="n">JSONEncoder</span><span class="o">.</span><span class="n">default</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">o</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="JSONDecoder"><a class="viewcode-back" href="../../flask/flask.html#flask.app.JSONDecoder">[docs]</a><span class="k">class</span> <span class="nc">JSONDecoder</span><span class="p">(</span><span class="n">_json</span><span class="o">.</span><span class="n">JSONDecoder</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The default JSON decoder.  This one does not change the behavior from</span>
+<span class="sd">    the default simplejson decoder.  Consult the :mod:`json` documentation</span>
+<span class="sd">    for more information.  This decoder is not only used for the load</span>
+<span class="sd">    functions of this module but also :attr:`~flask.Request`.</span>
+<span class="sd">    &quot;&quot;&quot;</span></div>
+
+
+<span class="k">def</span> <span class="nf">_dump_arg_defaults</span><span class="p">(</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Inject default arguments for dump functions.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">current_app</span><span class="p">:</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;cls&#39;</span><span class="p">,</span> <span class="n">current_app</span><span class="o">.</span><span class="n">json_encoder</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">current_app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;JSON_AS_ASCII&#39;</span><span class="p">]:</span>
+            <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;ensure_ascii&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;sort_keys&#39;</span><span class="p">,</span> <span class="n">current_app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;JSON_SORT_KEYS&#39;</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;sort_keys&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;cls&#39;</span><span class="p">,</span> <span class="n">JSONEncoder</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_load_arg_defaults</span><span class="p">(</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Inject default arguments for load functions.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">current_app</span><span class="p">:</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;cls&#39;</span><span class="p">,</span> <span class="n">current_app</span><span class="o">.</span><span class="n">json_decoder</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;cls&#39;</span><span class="p">,</span> <span class="n">JSONDecoder</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="dumps"><a class="viewcode-back" href="../../flask/flask.html#flask.app.dumps">[docs]</a><span class="k">def</span> <span class="nf">dumps</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Serialize ``obj`` to a JSON formatted ``str`` by using the application&#39;s</span>
+<span class="sd">    configured encoder (:attr:`~flask.Flask.json_encoder`) if there is an</span>
+<span class="sd">    application on the stack.</span>
+
+<span class="sd">    This function can return ``unicode`` strings or ascii-only bytestrings by</span>
+<span class="sd">    default which coerce into unicode strings automatically.  That behavior by</span>
+<span class="sd">    default is controlled by the ``JSON_AS_ASCII`` configuration variable</span>
+<span class="sd">    and can be overridden by the simplejson ``ensure_ascii`` parameter.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_dump_arg_defaults</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">encoding</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;encoding&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">rv</span> <span class="o">=</span> <span class="n">_json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">encoding</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rv</span><span class="p">,</span> <span class="n">text_type</span><span class="p">):</span>
+        <span class="n">rv</span> <span class="o">=</span> <span class="n">rv</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">encoding</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">rv</span></div>
+
+
+<div class="viewcode-block" id="dump"><a class="viewcode-back" href="../../flask/flask.html#flask.app.dump">[docs]</a><span class="k">def</span> <span class="nf">dump</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">fp</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Like :func:`dumps` but writes into a file object.&quot;&quot;&quot;</span>
+    <span class="n">_dump_arg_defaults</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">encoding</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;encoding&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">encoding</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">fp</span> <span class="o">=</span> <span class="n">_wrap_writer_for_text</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="n">encoding</span><span class="p">)</span>
+    <span class="n">_json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">fp</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="loads"><a class="viewcode-back" href="../../flask/flask.html#flask.app.loads">[docs]</a><span class="k">def</span> <span class="nf">loads</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Unserialize a JSON object from a string ``s`` by using the application&#39;s</span>
+<span class="sd">    configured decoder (:attr:`~flask.Flask.json_decoder`) if there is an</span>
+<span class="sd">    application on the stack.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_load_arg_defaults</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">):</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;encoding&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">_json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="load"><a class="viewcode-back" href="../../flask/flask.html#flask.app.load">[docs]</a><span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Like :func:`loads` but reads from a file object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_load_arg_defaults</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">PY2</span><span class="p">:</span>
+        <span class="n">fp</span> <span class="o">=</span> <span class="n">_wrap_reader_for_text</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;encoding&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">_json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="htmlsafe_dumps"><a class="viewcode-back" href="../../flask/flask.html#flask.app.htmlsafe_dumps">[docs]</a><span class="k">def</span> <span class="nf">htmlsafe_dumps</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Works exactly like :func:`dumps` but is safe for use in ``&lt;script&gt;``</span>
+<span class="sd">    tags.  It accepts the same arguments and returns a JSON string.  Note that</span>
+<span class="sd">    this is available in templates through the ``|tojson`` filter which will</span>
+<span class="sd">    also mark the result as safe.  Due to how this function escapes certain</span>
+<span class="sd">    characters this is safe even if used outside of ``&lt;script&gt;`` tags.</span>
+
+<span class="sd">    The following characters are escaped in strings:</span>
+
+<span class="sd">    -   ``&lt;``</span>
+<span class="sd">    -   ``&gt;``</span>
+<span class="sd">    -   ``&amp;``</span>
+<span class="sd">    -   ``&#39;``</span>
+
+<span class="sd">    This makes it safe to embed such strings in any place in HTML with the</span>
+<span class="sd">    notable exception of double quoted attributes.  In that case single</span>
+<span class="sd">    quote your attributes or HTML escape it in addition.</span>
+
+<span class="sd">    .. versionchanged:: 0.10</span>
+<span class="sd">       This function&#39;s return value is now always safe for HTML usage, even</span>
+<span class="sd">       if outside of script tags or if used in XHTML.  This rule does not</span>
+<span class="sd">       hold true when using this function in HTML attributes that are double</span>
+<span class="sd">       quoted.  Always single quote attributes if you use the ``|tojson``</span>
+<span class="sd">       filter.  Alternatively use ``|tojson|forceescape``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">rv</span> <span class="o">=</span> <span class="n">dumps</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> \
+        <span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">u&#39;&lt;&#39;</span><span class="p">,</span> <span class="s1">u&#39;</span><span class="se">\\</span><span class="s1">u003c&#39;</span><span class="p">)</span> \
+        <span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">u&#39;&gt;&#39;</span><span class="p">,</span> <span class="s1">u&#39;</span><span class="se">\\</span><span class="s1">u003e&#39;</span><span class="p">)</span> \
+        <span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">u&#39;&amp;&#39;</span><span class="p">,</span> <span class="s1">u&#39;</span><span class="se">\\</span><span class="s1">u0026&#39;</span><span class="p">)</span> \
+        <span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">u&quot;&#39;&quot;</span><span class="p">,</span> <span class="s1">u&#39;</span><span class="se">\\</span><span class="s1">u0027&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">_slash_escape</span><span class="p">:</span>
+        <span class="n">rv</span> <span class="o">=</span> <span class="n">rv</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">/&#39;</span><span class="p">,</span> <span class="s1">&#39;/&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">rv</span></div>
+
+
+<div class="viewcode-block" id="htmlsafe_dump"><a class="viewcode-back" href="../../flask/flask.html#flask.app.htmlsafe_dump">[docs]</a><span class="k">def</span> <span class="nf">htmlsafe_dump</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">fp</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Like :func:`htmlsafe_dumps` but writes into a file object.&quot;&quot;&quot;</span>
+    <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">text_type</span><span class="p">(</span><span class="n">htmlsafe_dumps</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)))</span></div>
+
+
+<div class="viewcode-block" id="jsonify"><a class="viewcode-back" href="../../flask/flask.html#flask.app.jsonify">[docs]</a><span class="k">def</span> <span class="nf">jsonify</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;This function wraps :func:`dumps` to add a few enhancements that make</span>
+<span class="sd">    life easier.  It turns the JSON output into a :class:`~flask.Response`</span>
+<span class="sd">    object with the :mimetype:`application/json` mimetype.  For convenience, it</span>
+<span class="sd">    also converts multiple arguments into an array or multiple keyword arguments</span>
+<span class="sd">    into a dict.  This means that both ``jsonify(1,2,3)`` and</span>
+<span class="sd">    ``jsonify([1,2,3])`` serialize to ``[1,2,3]``.</span>
+
+<span class="sd">    For clarity, the JSON serialization behavior has the following differences</span>
+<span class="sd">    from :func:`dumps`:</span>
+
+<span class="sd">    1. Single argument: Passed straight through to :func:`dumps`.</span>
+<span class="sd">    2. Multiple arguments: Converted to an array before being passed to</span>
+<span class="sd">       :func:`dumps`.</span>
+<span class="sd">    3. Multiple keyword arguments: Converted to a dict before being passed to</span>
+<span class="sd">       :func:`dumps`.</span>
+<span class="sd">    4. Both args and kwargs: Behavior undefined and will throw an exception.</span>
+
+<span class="sd">    Example usage::</span>
+
+<span class="sd">        from flask import jsonify</span>
+
+<span class="sd">        @app.route(&#39;/_get_current_user&#39;)</span>
+<span class="sd">        def get_current_user():</span>
+<span class="sd">            return jsonify(username=g.user.username,</span>
+<span class="sd">                           email=g.user.email,</span>
+<span class="sd">                           id=g.user.id)</span>
+
+<span class="sd">    This will send a JSON response like this to the browser::</span>
+
+<span class="sd">        {</span>
+<span class="sd">            &quot;username&quot;: &quot;admin&quot;,</span>
+<span class="sd">            &quot;email&quot;: &quot;admin@localhost&quot;,</span>
+<span class="sd">            &quot;id&quot;: 42</span>
+<span class="sd">        }</span>
+
+
+<span class="sd">    .. versionchanged:: 0.11</span>
+<span class="sd">       Added support for serializing top-level arrays. This introduces a</span>
+<span class="sd">       security risk in ancient browsers. See :ref:`json-security` for details.</span>
+
+<span class="sd">    This function&#39;s response will be pretty printed if it was not requested</span>
+<span class="sd">    with ``X-Requested-With: XMLHttpRequest`` to simplify debugging unless</span>
+<span class="sd">    the ``JSONIFY_PRETTYPRINT_REGULAR`` config parameter is set to false.</span>
+<span class="sd">    Compressed (not pretty) formatting currently means no indents and no</span>
+<span class="sd">    spaces after separators.</span>
+
+<span class="sd">    .. versionadded:: 0.2</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">indent</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">separators</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">,</span> <span class="s1">&#39;:&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">current_app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;JSONIFY_PRETTYPRINT_REGULAR&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">request</span><span class="o">.</span><span class="n">is_xhr</span><span class="p">:</span>
+        <span class="n">indent</span> <span class="o">=</span> <span class="mi">2</span>
+        <span class="n">separators</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;, &#39;</span><span class="p">,</span> <span class="s1">&#39;: &#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">args</span> <span class="ow">and</span> <span class="n">kwargs</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;jsonify() behavior undefined when passed both args and kwargs&#39;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>  <span class="c1"># single args are passed directly to dumps()</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">args</span> <span class="ow">or</span> <span class="n">kwargs</span>
+
+    <span class="k">return</span> <span class="n">current_app</span><span class="o">.</span><span class="n">response_class</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">dumps</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="n">indent</span><span class="p">,</span> <span class="n">separators</span><span class="o">=</span><span class="n">separators</span><span class="p">),</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">),</span>
+        <span class="n">mimetype</span><span class="o">=</span><span class="n">current_app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;JSONIFY_MIMETYPE&#39;</span><span class="p">]</span>
+    <span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">tojson_filter</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">Markup</span><span class="p">(</span><span class="n">htmlsafe_dumps</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">))</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Author.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.8</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

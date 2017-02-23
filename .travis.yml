@@ -1,0 +1,13 @@
+language: python
+python:
+  - "3.5"
+
+services:
+  - redis-server
+
+script: 
+  - python3 setup.py install
+  - cd tests
+  - python3 test_api.py
+  - python3 test_db.py
+  - python3 test_schedule.py

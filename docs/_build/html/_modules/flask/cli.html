@@ -1,0 +1,570 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>flask.cli &#8212; proxypool  documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="top" title="proxypool  documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for flask.cli</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    flask.cli</span>
+<span class="sd">    ~~~~~~~~~</span>
+
+<span class="sd">    A simple command line application to run flask apps.</span>
+
+<span class="sd">    :copyright: (c) 2015 by Armin Ronacher.</span>
+<span class="sd">    :license: BSD, see LICENSE for more details.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">threading</span> <span class="k">import</span> <span class="n">Lock</span><span class="p">,</span> <span class="n">Thread</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">update_wrapper</span>
+
+<span class="kn">import</span> <span class="nn">click</span>
+
+<span class="kn">from</span> <span class="nn">._compat</span> <span class="k">import</span> <span class="n">iteritems</span><span class="p">,</span> <span class="n">reraise</span>
+<span class="kn">from</span> <span class="nn">.helpers</span> <span class="k">import</span> <span class="n">get_debug_flag</span>
+
+
+<div class="viewcode-block" id="NoAppException"><a class="viewcode-back" href="../../flask/flask.html#flask.cli.NoAppException">[docs]</a><span class="k">class</span> <span class="nc">NoAppException</span><span class="p">(</span><span class="n">click</span><span class="o">.</span><span class="n">UsageError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Raised if an application cannot be found or loaded.&quot;&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="find_best_app"><a class="viewcode-back" href="../../flask/flask.html#flask.cli.find_best_app">[docs]</a><span class="k">def</span> <span class="nf">find_best_app</span><span class="p">(</span><span class="n">module</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Given a module instance this tries to find the best possible</span>
+<span class="sd">    application in the module or raises an exception.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">Flask</span>
+
+    <span class="c1"># Search for the most common names first.</span>
+    <span class="k">for</span> <span class="n">attr_name</span> <span class="ow">in</span> <span class="s1">&#39;app&#39;</span><span class="p">,</span> <span class="s1">&#39;application&#39;</span><span class="p">:</span>
+        <span class="n">app</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">attr_name</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">app</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">Flask</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">app</span>
+
+    <span class="c1"># Otherwise find the only object that is a Flask instance.</span>
+    <span class="n">matches</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="n">module</span><span class="o">.</span><span class="n">__dict__</span><span class="p">)</span>
+               <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">Flask</span><span class="p">)]</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">matches</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">matches</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">raise</span> <span class="n">NoAppException</span><span class="p">(</span><span class="s1">&#39;Failed to find application in module &quot;</span><span class="si">%s</span><span class="s1">&quot;.  Are &#39;</span>
+                         <span class="s1">&#39;you sure it contains a Flask application?  Maybe &#39;</span>
+                         <span class="s1">&#39;you wrapped it in a WSGI middleware or you are &#39;</span>
+                         <span class="s1">&#39;using a factory function.&#39;</span> <span class="o">%</span> <span class="n">module</span><span class="o">.</span><span class="n">__name__</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="prepare_exec_for_file"><a class="viewcode-back" href="../../flask/flask.html#flask.cli.prepare_exec_for_file">[docs]</a><span class="k">def</span> <span class="nf">prepare_exec_for_file</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Given a filename this will try to calculate the python path, add it</span>
+<span class="sd">    to the search path and return the actual module name that is expected.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">module</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># Chop off file extensions or package markers</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">filename</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;__init__.py&#39;</span><span class="p">:</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">filename</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;.py&#39;</span><span class="p">):</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">NoAppException</span><span class="p">(</span><span class="s1">&#39;The file provided (</span><span class="si">%s</span><span class="s1">) does exist but is not a &#39;</span>
+                             <span class="s1">&#39;valid Python file.  This means that it cannot &#39;</span>
+                             <span class="s1">&#39;be used as application.  Please change the &#39;</span>
+                             <span class="s1">&#39;extension to .py&#39;</span> <span class="o">%</span> <span class="n">filename</span><span class="p">)</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">realpath</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+
+    <span class="n">dirpath</span> <span class="o">=</span> <span class="n">filename</span>
+    <span class="k">while</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">dirpath</span><span class="p">,</span> <span class="n">extra</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">dirpath</span><span class="p">)</span>
+        <span class="n">module</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">extra</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dirpath</span><span class="p">,</span> <span class="s1">&#39;__init__.py&#39;</span><span class="p">)):</span>
+            <span class="k">break</span>
+
+    <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dirpath</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s1">&#39;.&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">module</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="locate_app"><a class="viewcode-back" href="../../flask/flask.html#flask.cli.locate_app">[docs]</a><span class="k">def</span> <span class="nf">locate_app</span><span class="p">(</span><span class="n">app_id</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Attempts to locate the application.&quot;&quot;&quot;</span>
+    <span class="n">__traceback_hide__</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">if</span> <span class="s1">&#39;:&#39;</span> <span class="ow">in</span> <span class="n">app_id</span><span class="p">:</span>
+        <span class="n">module</span><span class="p">,</span> <span class="n">app_obj</span> <span class="o">=</span> <span class="n">app_id</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">module</span> <span class="o">=</span> <span class="n">app_id</span>
+        <span class="n">app_obj</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="nb">__import__</span><span class="p">(</span><span class="n">module</span><span class="p">)</span>
+    <span class="n">mod</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="n">module</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">app_obj</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">app</span> <span class="o">=</span> <span class="n">find_best_app</span><span class="p">(</span><span class="n">mod</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">app</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="n">app_obj</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">app</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;Failed to find application in module &quot;</span><span class="si">%s</span><span class="s1">&quot;&#39;</span>
+                               <span class="o">%</span> <span class="n">module</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">app</span></div>
+
+
+<div class="viewcode-block" id="find_default_import_path"><a class="viewcode-back" href="../../flask/flask.html#flask.cli.find_default_import_path">[docs]</a><span class="k">def</span> <span class="nf">find_default_import_path</span><span class="p">():</span>
+    <span class="n">app</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;FLASK_APP&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">app</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">app</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">prepare_exec_for_file</span><span class="p">(</span><span class="n">app</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">app</span></div>
+
+
+<div class="viewcode-block" id="DispatchingApp"><a class="viewcode-back" href="../../flask/flask.html#flask.cli.DispatchingApp">[docs]</a><span class="k">class</span> <span class="nc">DispatchingApp</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Special application that dispatches to a flask application which</span>
+<span class="sd">    is imported by name in a background thread.  If an error happens</span>
+<span class="sd">    it is is recorded and shows as part of the WSGI handling which in case</span>
+<span class="sd">    of the Werkzeug debugger means that it shows up in the browser.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">loader</span><span class="p">,</span> <span class="n">use_eager_loading</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">loader</span> <span class="o">=</span> <span class="n">loader</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_app</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span> <span class="o">=</span> <span class="n">Lock</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_bg_loading_exc_info</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">use_eager_loading</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_load_unlocked</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_load_in_background</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_load_in_background</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">_load_app</span><span class="p">():</span>
+            <span class="n">__traceback_hide__</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_load_unlocked</span><span class="p">()</span>
+                <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_bg_loading_exc_info</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">()</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">_load_app</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">())</span>
+        <span class="n">t</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_flush_bg_loading_exception</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">__traceback_hide__</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">exc_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bg_loading_exc_info</span>
+        <span class="k">if</span> <span class="n">exc_info</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_bg_loading_exc_info</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">reraise</span><span class="p">(</span><span class="o">*</span><span class="n">exc_info</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_load_unlocked</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">__traceback_hide__</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_app</span> <span class="o">=</span> <span class="n">rv</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">loader</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_bg_loading_exc_info</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">rv</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">environ</span><span class="p">,</span> <span class="n">start_response</span><span class="p">):</span>
+        <span class="n">__traceback_hide__</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_app</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_app</span><span class="p">(</span><span class="n">environ</span><span class="p">,</span> <span class="n">start_response</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_flush_bg_loading_exception</span><span class="p">()</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_app</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">rv</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_app</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">rv</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_unlocked</span><span class="p">()</span>
+            <span class="k">return</span> <span class="n">rv</span><span class="p">(</span><span class="n">environ</span><span class="p">,</span> <span class="n">start_response</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ScriptInfo"><a class="viewcode-back" href="../../flask/flask.html#flask.cli.ScriptInfo">[docs]</a><span class="k">class</span> <span class="nc">ScriptInfo</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Help object to deal with Flask applications.  This is usually not</span>
+<span class="sd">    necessary to interface with as it&#39;s used internally in the dispatching</span>
+<span class="sd">    to click.  In future versions of Flask this object will most likely play</span>
+<span class="sd">    a bigger role.  Typically it&#39;s created automatically by the</span>
+<span class="sd">    :class:`FlaskGroup` but you can also manually create it and pass it</span>
+<span class="sd">    onwards as click object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">app_import_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">create_app</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">create_app</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">app_import_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">app_import_path</span> <span class="o">=</span> <span class="n">find_default_import_path</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">app_import_path</span> <span class="o">=</span> <span class="n">app_import_path</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">app_import_path</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1">#: Optionally the import path for the Flask application.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">app_import_path</span> <span class="o">=</span> <span class="n">app_import_path</span>
+        <span class="c1">#: Optionally a function that is passed the script info to create</span>
+        <span class="c1">#: the instance of the application.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_app</span> <span class="o">=</span> <span class="n">create_app</span>
+        <span class="c1">#: A dictionary with arbitrary data that can be associated with</span>
+        <span class="c1">#: this script info.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_loaded_app</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="ScriptInfo.load_app"><a class="viewcode-back" href="../../flask/flask.html#flask.cli.ScriptInfo.load_app">[docs]</a>    <span class="k">def</span> <span class="nf">load_app</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Loads the Flask app (if not yet loaded) and returns it.  Calling</span>
+<span class="sd">        this multiple times will just result in the already loaded app to</span>
+<span class="sd">        be returned.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">__traceback_hide__</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loaded_app</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loaded_app</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_app</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">rv</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_app</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">app_import_path</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">NoAppException</span><span class="p">(</span>
+                    <span class="s1">&#39;Could not locate Flask application. You did not provide &#39;</span>
+                    <span class="s1">&#39;the FLASK_APP environment variable.</span><span class="se">\n\n</span><span class="s1">For more &#39;</span>
+                    <span class="s1">&#39;information see &#39;</span>
+                    <span class="s1">&#39;http://flask.pocoo.org/docs/latest/quickstart/&#39;</span><span class="p">)</span>
+            <span class="n">rv</span> <span class="o">=</span> <span class="n">locate_app</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">app_import_path</span><span class="p">)</span>
+        <span class="n">debug</span> <span class="o">=</span> <span class="n">get_debug_flag</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">debug</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">rv</span><span class="o">.</span><span class="n">debug</span> <span class="o">=</span> <span class="n">debug</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_loaded_app</span> <span class="o">=</span> <span class="n">rv</span>
+        <span class="k">return</span> <span class="n">rv</span></div></div>
+
+
+<span class="n">pass_script_info</span> <span class="o">=</span> <span class="n">click</span><span class="o">.</span><span class="n">make_pass_decorator</span><span class="p">(</span><span class="n">ScriptInfo</span><span class="p">,</span> <span class="n">ensure</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="with_appcontext"><a class="viewcode-back" href="../../flask/flask.html#flask.cli.with_appcontext">[docs]</a><span class="k">def</span> <span class="nf">with_appcontext</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Wraps a callback so that it&#39;s guaranteed to be executed with the</span>
+<span class="sd">    script&#39;s application context.  If callbacks are registered directly</span>
+<span class="sd">    to the ``app.cli`` object then they are wrapped with this function</span>
+<span class="sd">    by default unless it&#39;s disabled.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nd">@click</span><span class="o">.</span><span class="n">pass_context</span>
+    <span class="k">def</span> <span class="nf">decorator</span><span class="p">(</span><span class="n">__ctx</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">__ctx</span><span class="o">.</span><span class="n">ensure_object</span><span class="p">(</span><span class="n">ScriptInfo</span><span class="p">)</span><span class="o">.</span><span class="n">load_app</span><span class="p">()</span><span class="o">.</span><span class="n">app_context</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">__ctx</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">update_wrapper</span><span class="p">(</span><span class="n">decorator</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AppGroup"><a class="viewcode-back" href="../../flask/flask.html#flask.cli.AppGroup">[docs]</a><span class="k">class</span> <span class="nc">AppGroup</span><span class="p">(</span><span class="n">click</span><span class="o">.</span><span class="n">Group</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;This works similar to a regular click :class:`~click.Group` but it</span>
+<span class="sd">    changes the behavior of the :meth:`command` decorator so that it</span>
+<span class="sd">    automatically wraps the functions in :func:`with_appcontext`.</span>
+
+<span class="sd">    Not to be confused with :class:`FlaskGroup`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="AppGroup.command"><a class="viewcode-back" href="../../flask/flask.html#flask.cli.AppGroup.command">[docs]</a>    <span class="k">def</span> <span class="nf">command</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;This works exactly like the method of the same name on a regular</span>
+<span class="sd">        :class:`click.Group` but it wraps callbacks in :func:`with_appcontext`</span>
+<span class="sd">        unless it&#39;s disabled by passing ``with_appcontext=False``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">wrap_for_ctx</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;with_appcontext&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="k">def</span> <span class="nf">decorator</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">wrap_for_ctx</span><span class="p">:</span>
+                <span class="n">f</span> <span class="o">=</span> <span class="n">with_appcontext</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">click</span><span class="o">.</span><span class="n">Group</span><span class="o">.</span><span class="n">command</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)(</span><span class="n">f</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">decorator</span></div>
+
+<div class="viewcode-block" id="AppGroup.group"><a class="viewcode-back" href="../../flask/flask.html#flask.cli.AppGroup.group">[docs]</a>    <span class="k">def</span> <span class="nf">group</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;This works exactly like the method of the same name on a regular</span>
+<span class="sd">        :class:`click.Group` but it defaults the group class to</span>
+<span class="sd">        :class:`AppGroup`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;cls&#39;</span><span class="p">,</span> <span class="n">AppGroup</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">click</span><span class="o">.</span><span class="n">Group</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="FlaskGroup"><a class="viewcode-back" href="../../flask/flask.html#flask.cli.FlaskGroup">[docs]</a><span class="k">class</span> <span class="nc">FlaskGroup</span><span class="p">(</span><span class="n">AppGroup</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Special subclass of the :class:`AppGroup` group that supports</span>
+<span class="sd">    loading more commands from the configured Flask app.  Normally a</span>
+<span class="sd">    developer does not have to interface with this class but there are</span>
+<span class="sd">    some very advanced use cases for which it makes sense to create an</span>
+<span class="sd">    instance of this.</span>
+
+<span class="sd">    For information as of why this is useful see :ref:`custom-scripts`.</span>
+
+<span class="sd">    :param add_default_commands: if this is True then the default run and</span>
+<span class="sd">                                 shell commands wil be added.</span>
+<span class="sd">    :param create_app: an optional callback that is passed the script info</span>
+<span class="sd">                       and returns the loaded app.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">add_default_commands</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">create_app</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">extra</span><span class="p">):</span>
+        <span class="n">AppGroup</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">extra</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_app</span> <span class="o">=</span> <span class="n">create_app</span>
+
+        <span class="k">if</span> <span class="n">add_default_commands</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_command</span><span class="p">(</span><span class="n">run_command</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_command</span><span class="p">(</span><span class="n">shell_command</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_loaded_plugin_commands</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">_load_plugin_commands</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loaded_plugin_commands</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">import</span> <span class="nn">pkg_resources</span>
+        <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_loaded_plugin_commands</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">return</span>
+
+        <span class="k">for</span> <span class="n">ep</span> <span class="ow">in</span> <span class="n">pkg_resources</span><span class="o">.</span><span class="n">iter_entry_points</span><span class="p">(</span><span class="s1">&#39;flask.commands&#39;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_command</span><span class="p">(</span><span class="n">ep</span><span class="o">.</span><span class="n">load</span><span class="p">(),</span> <span class="n">ep</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_loaded_plugin_commands</span> <span class="o">=</span> <span class="kc">True</span>
+
+<div class="viewcode-block" id="FlaskGroup.get_command"><a class="viewcode-back" href="../../flask/flask.html#flask.cli.FlaskGroup.get_command">[docs]</a>    <span class="k">def</span> <span class="nf">get_command</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_load_plugin_commands</span><span class="p">()</span>
+
+        <span class="c1"># We load built-in commands first as these should always be the</span>
+        <span class="c1"># same no matter what the app does.  If the app does want to</span>
+        <span class="c1"># override this it needs to make a custom instance of this group</span>
+        <span class="c1"># and not attach the default commands.</span>
+        <span class="c1">#</span>
+        <span class="c1"># This also means that the script stays functional in case the</span>
+        <span class="c1"># application completely fails.</span>
+        <span class="n">rv</span> <span class="o">=</span> <span class="n">AppGroup</span><span class="o">.</span><span class="n">get_command</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">rv</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">rv</span>
+
+        <span class="n">info</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">ensure_object</span><span class="p">(</span><span class="n">ScriptInfo</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">rv</span> <span class="o">=</span> <span class="n">info</span><span class="o">.</span><span class="n">load_app</span><span class="p">()</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">get_command</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">rv</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">rv</span>
+        <span class="k">except</span> <span class="n">NoAppException</span><span class="p">:</span>
+            <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="FlaskGroup.list_commands"><a class="viewcode-back" href="../../flask/flask.html#flask.cli.FlaskGroup.list_commands">[docs]</a>    <span class="k">def</span> <span class="nf">list_commands</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_load_plugin_commands</span><span class="p">()</span>
+
+        <span class="c1"># The commands available is the list of both the application (if</span>
+        <span class="c1"># available) plus the builtin commands.</span>
+        <span class="n">rv</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">click</span><span class="o">.</span><span class="n">Group</span><span class="o">.</span><span class="n">list_commands</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">))</span>
+        <span class="n">info</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">ensure_object</span><span class="p">(</span><span class="n">ScriptInfo</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">rv</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">info</span><span class="o">.</span><span class="n">load_app</span><span class="p">()</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">list_commands</span><span class="p">(</span><span class="n">ctx</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="c1"># Here we intentionally swallow all exceptions as we don&#39;t</span>
+            <span class="c1"># want the help page to break if the app does not exist.</span>
+            <span class="c1"># If someone attempts to use the command we try to create</span>
+            <span class="c1"># the app again and this will give us the error.</span>
+            <span class="k">pass</span>
+        <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">rv</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="FlaskGroup.main"><a class="viewcode-back" href="../../flask/flask.html#flask.cli.FlaskGroup.main">[docs]</a>    <span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">obj</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;obj&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">obj</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">obj</span> <span class="o">=</span> <span class="n">ScriptInfo</span><span class="p">(</span><span class="n">create_app</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">create_app</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;obj&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">obj</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;auto_envvar_prefix&#39;</span><span class="p">,</span> <span class="s1">&#39;FLASK&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">AppGroup</span><span class="o">.</span><span class="n">main</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div></div>
+
+
+<span class="nd">@click</span><span class="o">.</span><span class="n">command</span><span class="p">(</span><span class="s1">&#39;run&#39;</span><span class="p">,</span> <span class="n">short_help</span><span class="o">=</span><span class="s1">&#39;Runs a development server.&#39;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s1">&#39;--host&#39;</span><span class="p">,</span> <span class="s1">&#39;-h&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s1">&#39;127.0.0.1&#39;</span><span class="p">,</span>
+              <span class="n">help</span><span class="o">=</span><span class="s1">&#39;The interface to bind to.&#39;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s1">&#39;--port&#39;</span><span class="p">,</span> <span class="s1">&#39;-p&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">5000</span><span class="p">,</span>
+              <span class="n">help</span><span class="o">=</span><span class="s1">&#39;The port to bind to.&#39;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s1">&#39;--reload/--no-reload&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+              <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Enable or disable the reloader.  By default the reloader &#39;</span>
+              <span class="s1">&#39;is active if debug is enabled.&#39;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s1">&#39;--debugger/--no-debugger&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+              <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Enable or disable the debugger.  By default the debugger &#39;</span>
+              <span class="s1">&#39;is active if debug is enabled.&#39;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s1">&#39;--eager-loading/--lazy-loader&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+              <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Enable or disable eager loading.  By default eager &#39;</span>
+              <span class="s1">&#39;loading is enabled if the reloader is disabled.&#39;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s1">&#39;--with-threads/--without-threads&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+              <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Enable or disable multithreading.&#39;</span><span class="p">)</span>
+<span class="nd">@pass_script_info</span>
+<span class="k">def</span> <span class="nf">run_command</span><span class="p">(</span><span class="n">info</span><span class="p">,</span> <span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="p">,</span> <span class="n">reload</span><span class="p">,</span> <span class="n">debugger</span><span class="p">,</span> <span class="n">eager_loading</span><span class="p">,</span>
+                <span class="n">with_threads</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Runs a local development server for the Flask application.</span>
+
+<span class="sd">    This local server is recommended for development purposes only but it</span>
+<span class="sd">    can also be used for simple intranet deployments.  By default it will</span>
+<span class="sd">    not support any sort of concurrency at all to simplify debugging.  This</span>
+<span class="sd">    can be changed with the --with-threads option which will enable basic</span>
+<span class="sd">    multithreading.</span>
+
+<span class="sd">    The reloader and debugger are by default enabled if the debug flag of</span>
+<span class="sd">    Flask is enabled and disabled otherwise.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">werkzeug.serving</span> <span class="k">import</span> <span class="n">run_simple</span>
+
+    <span class="n">debug</span> <span class="o">=</span> <span class="n">get_debug_flag</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">reload</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">reload</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">debug</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">debugger</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">debugger</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">debug</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">eager_loading</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">eager_loading</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">reload</span>
+
+    <span class="n">app</span> <span class="o">=</span> <span class="n">DispatchingApp</span><span class="p">(</span><span class="n">info</span><span class="o">.</span><span class="n">load_app</span><span class="p">,</span> <span class="n">use_eager_loading</span><span class="o">=</span><span class="n">eager_loading</span><span class="p">)</span>
+
+    <span class="c1"># Extra startup messages.  This depends a but on Werkzeug internals to</span>
+    <span class="c1"># not double execute when the reloader kicks in.</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;WERKZEUG_RUN_MAIN&#39;</span><span class="p">)</span> <span class="o">!=</span> <span class="s1">&#39;true&#39;</span><span class="p">:</span>
+        <span class="c1"># If we have an import path we can print it out now which can help</span>
+        <span class="c1"># people understand what&#39;s being served.  If we do not have an</span>
+        <span class="c1"># import path because the app was loaded through a callback then</span>
+        <span class="c1"># we won&#39;t print anything.</span>
+        <span class="k">if</span> <span class="n">info</span><span class="o">.</span><span class="n">app_import_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39; * Serving Flask app &quot;</span><span class="si">%s</span><span class="s1">&quot;&#39;</span> <span class="o">%</span> <span class="n">info</span><span class="o">.</span><span class="n">app_import_path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">debug</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39; * Forcing debug mode </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">debug</span> <span class="ow">and</span> <span class="s1">&#39;on&#39;</span> <span class="ow">or</span> <span class="s1">&#39;off&#39;</span><span class="p">))</span>
+
+    <span class="n">run_simple</span><span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="p">,</span> <span class="n">app</span><span class="p">,</span> <span class="n">use_reloader</span><span class="o">=</span><span class="n">reload</span><span class="p">,</span>
+               <span class="n">use_debugger</span><span class="o">=</span><span class="n">debugger</span><span class="p">,</span> <span class="n">threaded</span><span class="o">=</span><span class="n">with_threads</span><span class="p">)</span>
+
+
+<span class="nd">@click</span><span class="o">.</span><span class="n">command</span><span class="p">(</span><span class="s1">&#39;shell&#39;</span><span class="p">,</span> <span class="n">short_help</span><span class="o">=</span><span class="s1">&#39;Runs a shell in the app context.&#39;</span><span class="p">)</span>
+<span class="nd">@with_appcontext</span>
+<span class="k">def</span> <span class="nf">shell_command</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Runs an interactive Python shell in the context of a given</span>
+<span class="sd">    Flask application.  The application will populate the default</span>
+<span class="sd">    namespace of this shell according to it&#39;s configuration.</span>
+
+<span class="sd">    This is useful for executing small snippets of management code</span>
+<span class="sd">    without having to manually configuring the application.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">code</span>
+    <span class="kn">from</span> <span class="nn">flask.globals</span> <span class="k">import</span> <span class="n">_app_ctx_stack</span>
+    <span class="n">app</span> <span class="o">=</span> <span class="n">_app_ctx_stack</span><span class="o">.</span><span class="n">top</span><span class="o">.</span><span class="n">app</span>
+    <span class="n">banner</span> <span class="o">=</span> <span class="s1">&#39;Python </span><span class="si">%s</span><span class="s1"> on </span><span class="si">%s</span><span class="se">\n</span><span class="s1">App: </span><span class="si">%s%s</span><span class="se">\n</span><span class="s1">Instance: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">version</span><span class="p">,</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">platform</span><span class="p">,</span>
+        <span class="n">app</span><span class="o">.</span><span class="n">import_name</span><span class="p">,</span>
+        <span class="n">app</span><span class="o">.</span><span class="n">debug</span> <span class="ow">and</span> <span class="s1">&#39; [debug]&#39;</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="n">app</span><span class="o">.</span><span class="n">instance_path</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">ctx</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="c1"># Support the regular Python interpreter startup script if someone</span>
+    <span class="c1"># is using it.</span>
+    <span class="n">startup</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PYTHONSTARTUP&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">startup</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">startup</span><span class="p">):</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">startup</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="nb">eval</span><span class="p">(</span><span class="nb">compile</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(),</span> <span class="n">startup</span><span class="p">,</span> <span class="s1">&#39;exec&#39;</span><span class="p">),</span> <span class="n">ctx</span><span class="p">)</span>
+
+    <span class="n">ctx</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">make_shell_context</span><span class="p">())</span>
+
+    <span class="n">code</span><span class="o">.</span><span class="n">interact</span><span class="p">(</span><span class="n">banner</span><span class="o">=</span><span class="n">banner</span><span class="p">,</span> <span class="n">local</span><span class="o">=</span><span class="n">ctx</span><span class="p">)</span>
+
+
+<span class="n">cli</span> <span class="o">=</span> <span class="n">FlaskGroup</span><span class="p">(</span><span class="n">help</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span><span class="se">\</span>
+<span class="s2">This shell command acts as general utility script for Flask applications.</span>
+
+<span class="s2">It loads the application configured (either through the FLASK_APP environment</span>
+<span class="s2">variable) and then provides commands either provided by the application or</span>
+<span class="s2">Flask itself.</span>
+
+<span class="s2">The most useful commands are the &quot;run&quot; and &quot;shell&quot; command.</span>
+
+<span class="s2">Example usage:</span>
+
+<span class="se">\b</span><span class="s2"></span>
+<span class="s2">  </span><span class="si">%(prefix)s%(cmd)s</span><span class="s2"> FLASK_APP=hello</span>
+<span class="s2">  </span><span class="si">%(prefix)s%(cmd)s</span><span class="s2"> FLASK_DEBUG=1</span>
+<span class="s2">  </span><span class="si">%(prefix)s</span><span class="s2">flask run</span>
+<span class="s2">&quot;&quot;&quot;</span> <span class="o">%</span> <span class="p">{</span>
+    <span class="s1">&#39;cmd&#39;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;posix&#39;</span> <span class="ow">and</span> <span class="s1">&#39;export&#39;</span> <span class="ow">or</span> <span class="s1">&#39;set&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;prefix&#39;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;posix&#39;</span> <span class="ow">and</span> <span class="s1">&#39;$ &#39;</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+<span class="p">})</span>
+
+
+<div class="viewcode-block" id="main"><a class="viewcode-back" href="../../flask/flask.html#flask.cli.main">[docs]</a><span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">as_module</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="n">this_module</span> <span class="o">=</span> <span class="n">__package__</span> <span class="o">+</span> <span class="s1">&#39;.cli&#39;</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+
+    <span class="k">if</span> <span class="n">as_module</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span> <span class="o">&gt;=</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">7</span><span class="p">):</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;python -m &#39;</span> <span class="o">+</span> <span class="n">this_module</span><span class="o">.</span><span class="n">rsplit</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;python -m &#39;</span> <span class="o">+</span> <span class="n">this_module</span>
+
+        <span class="c1"># This module is always executed as &quot;python -m flask.run&quot; and as such</span>
+        <span class="c1"># we need to ensure that we restore the actual command line so that</span>
+        <span class="c1"># the reloader can properly operate.</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">argv</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;-m&#39;</span><span class="p">,</span> <span class="n">this_module</span><span class="p">]</span> <span class="o">+</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="n">cli</span><span class="o">.</span><span class="n">main</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="n">args</span><span class="p">,</span> <span class="n">prog_name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span></div>
+
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">(</span><span class="n">as_module</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Author.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.8</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

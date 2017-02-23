@@ -1,0 +1,398 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>proxypool package &#8212; proxypool  documentation</title>
+    
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="top" title="proxypool  documentation" href="index.html" />
+    <link rel="prev" title="Welcome to proxypool’s documentation!" href="index.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="proxypool-package">
+<h1>proxypool package<a class="headerlink" href="#proxypool-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-proxypool.api">
+<span id="proxypool-api-module"></span><h2>proxypool.api module<a class="headerlink" href="#module-proxypool.api" title="Permalink to this headline">¶</a></h2>
+<blockquote>
+<div><blockquote>
+<div><a class="reference external" href="http://127.0.0.1:5000">http://127.0.0.1:5000</a>/进入主页。
+访问 <a class="reference external" href="http://127.0.0.1:5000/get">http://127.0.0.1:5000/get</a> 
+从代理池中获取一个代理。 
+访问 <a class="reference external" href="http://127.0.0.1:5000/count">http://127.0.0.1:5000/count</a>
+获取代理池中可用代理的总数。</div></blockquote>
+<p>Author:        Liu
+Date:          2016/12/9</p>
+</div></blockquote>
+</div>
+<hr class="docutils" />
+<div class="section" id="module-proxypool.db">
+<span id="proxypool-db-module"></span><h2>proxypool.db module<a class="headerlink" href="#module-proxypool.db" title="Permalink to this headline">¶</a></h2>
+<blockquote>
+<div><blockquote>
+<div>的交互。</div></blockquote>
+<p>Author:        Liu
+Date:          2016/12/9</p>
+</div></blockquote>
+<hr class="docutils" />
+<dl class="class">
+<dt id="proxypool.db.RedisClient">
+<em class="property">class </em><code class="descclassname">proxypool.db.</code><code class="descname">RedisClient</code><span class="sig-paren">(</span><em>host='localhost'</em>, <em>port=6379</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/proxypool/db.html#RedisClient"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proxypool.db.RedisClient" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<p>Redis数据库操作类。</p>
+<dl class="method">
+<dt id="proxypool.db.RedisClient.flush">
+<code class="descname">flush</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/proxypool/db.html#RedisClient.flush"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proxypool.db.RedisClient.flush" title="Permalink to this definition">¶</a></dt>
+<dd><p>刷新Redis中的全部内容，测试用。</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="proxypool.db.RedisClient.get">
+<code class="descname">get</code><span class="sig-paren">(</span><em>count=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/proxypool/db.html#RedisClient.get"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proxypool.db.RedisClient.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>从Pool中获取一定量数据。</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="proxypool.db.RedisClient.pop">
+<code class="descname">pop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/proxypool/db.html#RedisClient.pop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proxypool.db.RedisClient.pop" title="Permalink to this definition">¶</a></dt>
+<dd><p>弹出一个可用代理。</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="proxypool.db.RedisClient.put">
+<code class="descname">put</code><span class="sig-paren">(</span><em>proxy</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/proxypool/db.html#RedisClient.put"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proxypool.db.RedisClient.put" title="Permalink to this definition">¶</a></dt>
+<dd><p>将代理压入Pool中。
+用Redis的set容器来负责去重，如果proxy能被压入proxy_set，
+就将其放入proxy pool中，否则不压入。</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="proxypool.db.RedisClient.put_many">
+<code class="descname">put_many</code><span class="sig-paren">(</span><em>proxies</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/proxypool/db.html#RedisClient.put_many"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proxypool.db.RedisClient.put_many" title="Permalink to this definition">¶</a></dt>
+<dd><p>将一定量的代理压入Pool。</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="proxypool.db.RedisClient.queue_len">
+<code class="descname">queue_len</code><a class="headerlink" href="#proxypool.db.RedisClient.queue_len" title="Permalink to this definition">¶</a></dt>
+<dd><p>获取proxy pool的大小。</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-proxypool.error">
+<span id="proxypool-error-module"></span><h2>proxypool.error module<a class="headerlink" href="#module-proxypool.error" title="Permalink to this headline">¶</a></h2>
+<blockquote>
+<div>Author:        Liu
+Date:          2016/12/9</div></blockquote>
+<hr class="docutils" />
+<dl class="exception">
+<dt id="proxypool.error.PoolEmptyError">
+<em class="property">exception </em><code class="descclassname">proxypool.error.</code><code class="descname">PoolEmptyError</code><a class="reference internal" href="_modules/proxypool/error.html#PoolEmptyError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proxypool.error.PoolEmptyError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">Exception</span></code></p>
+<p>代理池空异常，如果代理池长时间为空，则抛出此异常。</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="proxypool.error.ResourceDepletionError">
+<em class="property">exception </em><code class="descclassname">proxypool.error.</code><code class="descname">ResourceDepletionError</code><a class="reference internal" href="_modules/proxypool/error.html#ResourceDepletionError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proxypool.error.ResourceDepletionError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">Exception</span></code></p>
+<p>资源枯竭异常，如果从所有抓取网站都抓不到可用的代理资源，
+则抛出此异常。</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-proxypool.proxyGetter">
+<span id="proxypool-proxygetter-module"></span><h2>proxypool.proxyGetter module<a class="headerlink" href="#module-proxypool.proxyGetter" title="Permalink to this headline">¶</a></h2>
+<blockquote>
+<div>Author:        Liu
+Date:          2016/12/9</div></blockquote>
+<hr class="docutils" />
+<dl class="class">
+<dt id="proxypool.proxyGetter.FreeProxyGetter">
+<em class="property">class </em><code class="descclassname">proxypool.proxyGetter.</code><code class="descname">FreeProxyGetter</code><a class="reference internal" href="_modules/proxypool/proxyGetter.html#FreeProxyGetter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proxypool.proxyGetter.FreeProxyGetter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<p>代理爬虫，负责扫描各大代理网站，抓取代理。
+该类有可扩展性，可根据需要自己添加新站点的代理抓取函数，
+但是函数名必须以crawl_开头，返回值必须以&#8221;host:port&#8221;的形式返回，
+添加器会自动识别并调用此类函数。</p>
+<dl class="method">
+<dt id="proxypool.proxyGetter.FreeProxyGetter.crawl_daili66">
+<code class="descname">crawl_daili66</code><span class="sig-paren">(</span><em>page_count=4</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/proxypool/proxyGetter.html#FreeProxyGetter.crawl_daili66"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proxypool.proxyGetter.FreeProxyGetter.crawl_daili66" title="Permalink to this definition">¶</a></dt>
+<dd><p>抓取代理66网的数据。</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="proxypool.proxyGetter.FreeProxyGetter.crawl_kuaidaili">
+<code class="descname">crawl_kuaidaili</code><span class="sig-paren">(</span><em>page_count=8</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/proxypool/proxyGetter.html#FreeProxyGetter.crawl_kuaidaili"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proxypool.proxyGetter.FreeProxyGetter.crawl_kuaidaili" title="Permalink to this definition">¶</a></dt>
+<dd><p>抓取快代理网的数据</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="proxypool.proxyGetter.FreeProxyGetter.crawl_proxy360">
+<code class="descname">crawl_proxy360</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/proxypool/proxyGetter.html#FreeProxyGetter.crawl_proxy360"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proxypool.proxyGetter.FreeProxyGetter.crawl_proxy360" title="Permalink to this definition">¶</a></dt>
+<dd><p>抓取proxy360网的数据。</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="proxypool.proxyGetter.FreeProxyGetter.crawl_xici">
+<code class="descname">crawl_xici</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/proxypool/proxyGetter.html#FreeProxyGetter.crawl_xici"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proxypool.proxyGetter.FreeProxyGetter.crawl_xici" title="Permalink to this definition">¶</a></dt>
+<dd><p>抓取xici代理网的数据。</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="proxypool.proxyGetter.FreeProxyGetter.get_raw_proxies">
+<code class="descname">get_raw_proxies</code><span class="sig-paren">(</span><em>callback</em>, <em>count=40</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/proxypool/proxyGetter.html#FreeProxyGetter.get_raw_proxies"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proxypool.proxyGetter.FreeProxyGetter.get_raw_proxies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="proxypool.proxyGetter.ProxyMetaclass">
+<em class="property">class </em><code class="descclassname">proxypool.proxyGetter.</code><code class="descname">ProxyMetaclass</code><a class="reference internal" href="_modules/proxypool/proxyGetter.html#ProxyMetaclass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proxypool.proxyGetter.ProxyMetaclass" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">type</span></code></p>
+<p>爬虫的元类，在FreeProxyGetter类中加入
+__CrawlFunc__和__CrawlFuncCount__
+两个参数，分别表示爬虫函数，和爬虫函数的数量。</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-proxypool.schedule">
+<span id="proxypool-schedule-module"></span><h2>proxypool.schedule module<a class="headerlink" href="#module-proxypool.schedule" title="Permalink to this headline">¶</a></h2>
+<blockquote>
+<div><blockquote>
+<div>包含ValidityTester，PoolAdder，
+Schedule三个类，负责维护代理池。</div></blockquote>
+<p>Author:        Liu
+Date:          2016/12/9</p>
+</div></blockquote>
+<hr class="docutils" />
+<dl class="class">
+<dt id="proxypool.schedule.PoolAdder">
+<em class="property">class </em><code class="descclassname">proxypool.schedule.</code><code class="descname">PoolAdder</code><span class="sig-paren">(</span><em>threshold</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/proxypool/schedule.html#PoolAdder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proxypool.schedule.PoolAdder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<p>添加器，负责向池中补充代理</p>
+<dl class="method">
+<dt id="proxypool.schedule.PoolAdder.add_to_queue">
+<code class="descname">add_to_queue</code><span class="sig-paren">(</span><em>flag=40</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/proxypool/schedule.html#PoolAdder.add_to_queue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proxypool.schedule.PoolAdder.add_to_queue" title="Permalink to this definition">¶</a></dt>
+<dd><p>命令爬虫抓取一定量未检测的代理，然后检测，将通过检测的代理
+加入到代理池中。</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="proxypool.schedule.PoolAdder.is_over_threshold">
+<code class="descname">is_over_threshold</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/proxypool/schedule.html#PoolAdder.is_over_threshold"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proxypool.schedule.PoolAdder.is_over_threshold" title="Permalink to this definition">¶</a></dt>
+<dd><p>判断代理池中的数据量是否达到阈值。</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="proxypool.schedule.Schedule">
+<em class="property">class </em><code class="descclassname">proxypool.schedule.</code><code class="descname">Schedule</code><a class="reference internal" href="_modules/proxypool/schedule.html#Schedule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proxypool.schedule.Schedule" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<p>总调度器，用于协调各调度器模块</p>
+<dl class="staticmethod">
+<dt id="proxypool.schedule.Schedule.check_pool">
+<em class="property">static </em><code class="descname">check_pool</code><span class="sig-paren">(</span><em>lower_threshold=10</em>, <em>upper_threshold=40</em>, <em>cycle=20</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/proxypool/schedule.html#Schedule.check_pool"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proxypool.schedule.Schedule.check_pool" title="Permalink to this definition">¶</a></dt>
+<dd><p>协调添加器，当代理池中可用代理的数量低于下阈值时，触发添加器，启动爬虫
+补充代理，当代理达到上阈值时，添加器停止工作。</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="proxypool.schedule.Schedule.run">
+<code class="descname">run</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/proxypool/schedule.html#Schedule.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proxypool.schedule.Schedule.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>运行调度器，创建两个进程，对代理池进行维护。</p>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="proxypool.schedule.Schedule.valid_proxy">
+<em class="property">static </em><code class="descname">valid_proxy</code><span class="sig-paren">(</span><em>cycle=600</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/proxypool/schedule.html#Schedule.valid_proxy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proxypool.schedule.Schedule.valid_proxy" title="Permalink to this definition">¶</a></dt>
+<dd><p>对已经如池的代理进行检测，防止池中的代理因长期
+不使用而过期。
+抽出代理池队列中前1/4的代理，检测，合格者压入队列尾。</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="proxypool.schedule.ValidityTester">
+<em class="property">class </em><code class="descclassname">proxypool.schedule.</code><code class="descname">ValidityTester</code><a class="reference internal" href="_modules/proxypool/schedule.html#ValidityTester"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proxypool.schedule.ValidityTester" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<p>检验器，负责对未知的代理进行异步检测。</p>
+<dl class="method">
+<dt id="proxypool.schedule.ValidityTester.get_usable_proxies">
+<code class="descname">get_usable_proxies</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/proxypool/schedule.html#ValidityTester.get_usable_proxies"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proxypool.schedule.ValidityTester.get_usable_proxies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="proxypool.schedule.ValidityTester.set_raw_proxies">
+<code class="descname">set_raw_proxies</code><span class="sig-paren">(</span><em>proxies</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/proxypool/schedule.html#ValidityTester.set_raw_proxies"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proxypool.schedule.ValidityTester.set_raw_proxies" title="Permalink to this definition">¶</a></dt>
+<dd><p>设置待检测的代理。</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="proxypool.schedule.ValidityTester.test">
+<code class="descname">test</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/proxypool/schedule.html#ValidityTester.test"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proxypool.schedule.ValidityTester.test" title="Permalink to this definition">¶</a></dt>
+<dd><p>异步检测_raw_proxies中的全部代理。</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="proxypool.schedule.ValidityTester.test_api">
+<code class="descname">test_api</code><em class="property"> = 'https://www.baidu.com'</em><a class="headerlink" href="#proxypool.schedule.ValidityTester.test_api" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="proxypool.schedule.ValidityTester.test_single_proxy">
+<code class="descname">test_single_proxy</code><span class="sig-paren">(</span><em>proxy</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/proxypool/schedule.html#ValidityTester.test_single_proxy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proxypool.schedule.ValidityTester.test_single_proxy" title="Permalink to this definition">¶</a></dt>
+<dd><p>检测单个代理，如果可用，则将其加入_usable_proxies</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-proxypool.setting">
+<span id="proxypool-setting-module"></span><h2>proxypool.setting module<a class="headerlink" href="#module-proxypool.setting" title="Permalink to this headline">¶</a></h2>
+<blockquote>
+<div>Author:        Liu
+Date:          2016/12/9</div></blockquote>
+</div>
+<hr class="docutils" />
+<div class="section" id="module-proxypool.utils">
+<span id="proxypool-utils-module"></span><h2>proxypool.utils module<a class="headerlink" href="#module-proxypool.utils" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="proxypool.utils.Downloader">
+<em class="property">class </em><code class="descclassname">proxypool.utils.</code><code class="descname">Downloader</code><span class="sig-paren">(</span><em>urls</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/proxypool/utils.html#Downloader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proxypool.utils.Downloader" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<p>一个异步下载器，可以对代理源异步抓取，但是容易被BAN。</p>
+<dl class="method">
+<dt id="proxypool.utils.Downloader.download">
+<code class="descname">download</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/proxypool/utils.html#Downloader.download"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proxypool.utils.Downloader.download" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="proxypool.utils.Downloader.download_single_page">
+<code class="descname">download_single_page</code><span class="sig-paren">(</span><em>url</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/proxypool/utils.html#Downloader.download_single_page"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proxypool.utils.Downloader.download_single_page" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="proxypool.utils.Downloader.htmls">
+<code class="descname">htmls</code><a class="headerlink" href="#proxypool.utils.Downloader.htmls" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="proxypool.utils.get_page">
+<code class="descclassname">proxypool.utils.</code><code class="descname">get_page</code><span class="sig-paren">(</span><em>url</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/proxypool/utils.html#get_page"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#proxypool.utils.get_page" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-proxypool">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-proxypool" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">proxypool package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-proxypool.api">proxypool.api module</a></li>
+<li><a class="reference internal" href="#module-proxypool.db">proxypool.db module</a></li>
+<li><a class="reference internal" href="#module-proxypool.error">proxypool.error module</a></li>
+<li><a class="reference internal" href="#module-proxypool.proxyGetter">proxypool.proxyGetter module</a></li>
+<li><a class="reference internal" href="#module-proxypool.schedule">proxypool.schedule module</a></li>
+<li><a class="reference internal" href="#module-proxypool.setting">proxypool.setting module</a></li>
+<li><a class="reference internal" href="#module-proxypool.utils">proxypool.utils module</a></li>
+<li><a class="reference internal" href="#module-proxypool">Module contents</a></li>
+</ul>
+</li>
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">Welcome to proxypool&#8217;s documentation!</a></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/proxypool.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Author.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.8</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
+      
+      |
+      <a href="_sources/proxypool.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,178 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>flask.logging &#8212; proxypool  documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="top" title="proxypool  documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for flask.logging</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    flask.logging</span>
+<span class="sd">    ~~~~~~~~~~~~~</span>
+
+<span class="sd">    Implements the logging support for Flask.</span>
+
+<span class="sd">    :copyright: (c) 2015 by Armin Ronacher.</span>
+<span class="sd">    :license: BSD, see LICENSE for more details.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+
+<span class="kn">import</span> <span class="nn">sys</span>
+
+<span class="kn">from</span> <span class="nn">werkzeug.local</span> <span class="k">import</span> <span class="n">LocalProxy</span>
+<span class="kn">from</span> <span class="nn">logging</span> <span class="k">import</span> <span class="n">getLogger</span><span class="p">,</span> <span class="n">StreamHandler</span><span class="p">,</span> <span class="n">Formatter</span><span class="p">,</span> <span class="n">getLoggerClass</span><span class="p">,</span> \
+     <span class="n">DEBUG</span><span class="p">,</span> <span class="n">ERROR</span>
+<span class="kn">from</span> <span class="nn">.globals</span> <span class="k">import</span> <span class="n">_request_ctx_stack</span>
+
+
+<span class="n">PROD_LOG_FORMAT</span> <span class="o">=</span> <span class="s1">&#39;[</span><span class="si">%(asctime)s</span><span class="s1">] </span><span class="si">%(levelname)s</span><span class="s1"> in </span><span class="si">%(module)s</span><span class="s1">: </span><span class="si">%(message)s</span><span class="s1">&#39;</span>
+<span class="n">DEBUG_LOG_FORMAT</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s1">&#39;-&#39;</span> <span class="o">*</span> <span class="mi">80</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span>
+    <span class="s1">&#39;</span><span class="si">%(levelname)s</span><span class="s1"> in </span><span class="si">%(module)s</span><span class="s1"> [</span><span class="si">%(pathname)s</span><span class="s1">:</span><span class="si">%(lineno)d</span><span class="s1">]:</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span>
+    <span class="s1">&#39;</span><span class="si">%(message)s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span>
+    <span class="s1">&#39;-&#39;</span> <span class="o">*</span> <span class="mi">80</span>
+<span class="p">)</span>
+
+
+<span class="nd">@LocalProxy</span>
+<span class="k">def</span> <span class="nf">_proxy_stream</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Finds the most appropriate error stream for the application.  If a</span>
+<span class="sd">    WSGI request is in flight we log to wsgi.errors, otherwise this resolves</span>
+<span class="sd">    to sys.stderr.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ctx</span> <span class="o">=</span> <span class="n">_request_ctx_stack</span><span class="o">.</span><span class="n">top</span>
+    <span class="k">if</span> <span class="n">ctx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">ctx</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;wsgi.errors&#39;</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span>
+
+
+<span class="k">def</span> <span class="nf">_should_log_for</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">mode</span><span class="p">):</span>
+    <span class="n">policy</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;LOGGER_HANDLER_POLICY&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">policy</span> <span class="o">==</span> <span class="n">mode</span> <span class="ow">or</span> <span class="n">policy</span> <span class="o">==</span> <span class="s1">&#39;always&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">return</span> <span class="kc">False</span>
+
+
+<div class="viewcode-block" id="create_logger"><a class="viewcode-back" href="../../flask/flask.html#flask.logging.create_logger">[docs]</a><span class="k">def</span> <span class="nf">create_logger</span><span class="p">(</span><span class="n">app</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Creates a logger for the given application.  This logger works</span>
+<span class="sd">    similar to a regular Python logger but changes the effective logging</span>
+<span class="sd">    level based on the application&#39;s debug flag.  Furthermore this</span>
+<span class="sd">    function also removes all attached handlers in case there was a</span>
+<span class="sd">    logger with the log name before.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">Logger</span> <span class="o">=</span> <span class="n">getLoggerClass</span><span class="p">()</span>
+
+    <span class="k">class</span> <span class="nc">DebugLogger</span><span class="p">(</span><span class="n">Logger</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">getEffectiveLevel</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">level</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">app</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">DEBUG</span>
+            <span class="k">return</span> <span class="n">Logger</span><span class="o">.</span><span class="n">getEffectiveLevel</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">class</span> <span class="nc">DebugHandler</span><span class="p">(</span><span class="n">StreamHandler</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">emit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">record</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">app</span><span class="o">.</span><span class="n">debug</span> <span class="ow">and</span> <span class="n">_should_log_for</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="s1">&#39;debug&#39;</span><span class="p">):</span>
+                <span class="n">StreamHandler</span><span class="o">.</span><span class="n">emit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">record</span><span class="p">)</span>
+
+    <span class="k">class</span> <span class="nc">ProductionHandler</span><span class="p">(</span><span class="n">StreamHandler</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">emit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">record</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">app</span><span class="o">.</span><span class="n">debug</span> <span class="ow">and</span> <span class="n">_should_log_for</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="s1">&#39;production&#39;</span><span class="p">):</span>
+                <span class="n">StreamHandler</span><span class="o">.</span><span class="n">emit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">record</span><span class="p">)</span>
+
+    <span class="n">debug_handler</span> <span class="o">=</span> <span class="n">DebugHandler</span><span class="p">()</span>
+    <span class="n">debug_handler</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">DEBUG</span><span class="p">)</span>
+    <span class="n">debug_handler</span><span class="o">.</span><span class="n">setFormatter</span><span class="p">(</span><span class="n">Formatter</span><span class="p">(</span><span class="n">DEBUG_LOG_FORMAT</span><span class="p">))</span>
+
+    <span class="n">prod_handler</span> <span class="o">=</span> <span class="n">ProductionHandler</span><span class="p">(</span><span class="n">_proxy_stream</span><span class="p">)</span>
+    <span class="n">prod_handler</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">ERROR</span><span class="p">)</span>
+    <span class="n">prod_handler</span><span class="o">.</span><span class="n">setFormatter</span><span class="p">(</span><span class="n">Formatter</span><span class="p">(</span><span class="n">PROD_LOG_FORMAT</span><span class="p">))</span>
+
+    <span class="n">logger</span> <span class="o">=</span> <span class="n">getLogger</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">logger_name</span><span class="p">)</span>
+    <span class="c1"># just in case that was not a new logger, get rid of all the handlers</span>
+    <span class="c1"># already attached to it.</span>
+    <span class="k">del</span> <span class="n">logger</span><span class="o">.</span><span class="n">handlers</span><span class="p">[:]</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">__class__</span> <span class="o">=</span> <span class="n">DebugLogger</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">addHandler</span><span class="p">(</span><span class="n">debug_handler</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">addHandler</span><span class="p">(</span><span class="n">prod_handler</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">logger</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Author.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.8</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

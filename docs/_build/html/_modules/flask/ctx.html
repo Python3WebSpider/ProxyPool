@@ -1,0 +1,498 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>flask.ctx &#8212; proxypool  documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="top" title="proxypool  documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for flask.ctx</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    flask.ctx</span>
+<span class="sd">    ~~~~~~~~~</span>
+
+<span class="sd">    Implements the objects required to keep the context.</span>
+
+<span class="sd">    :copyright: (c) 2015 by Armin Ronacher.</span>
+<span class="sd">    :license: BSD, see LICENSE for more details.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">update_wrapper</span>
+
+<span class="kn">from</span> <span class="nn">werkzeug.exceptions</span> <span class="k">import</span> <span class="n">HTTPException</span>
+
+<span class="kn">from</span> <span class="nn">.globals</span> <span class="k">import</span> <span class="n">_request_ctx_stack</span><span class="p">,</span> <span class="n">_app_ctx_stack</span>
+<span class="kn">from</span> <span class="nn">.signals</span> <span class="k">import</span> <span class="n">appcontext_pushed</span><span class="p">,</span> <span class="n">appcontext_popped</span>
+<span class="kn">from</span> <span class="nn">._compat</span> <span class="k">import</span> <span class="n">BROKEN_PYPY_CTXMGR_EXIT</span><span class="p">,</span> <span class="n">reraise</span>
+
+
+<span class="c1"># a singleton sentinel value for parameter defaults</span>
+<span class="n">_sentinel</span> <span class="o">=</span> <span class="nb">object</span><span class="p">()</span>
+
+
+<span class="k">class</span> <span class="nc">_AppCtxGlobals</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A plain object.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">default</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">pop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">_sentinel</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">default</span> <span class="ow">is</span> <span class="n">_sentinel</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">default</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">setdefault</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">default</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span>
+
+    <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">top</span> <span class="o">=</span> <span class="n">_app_ctx_stack</span><span class="o">.</span><span class="n">top</span>
+        <span class="k">if</span> <span class="n">top</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;&lt;flask.g of </span><span class="si">%r</span><span class="s1">&gt;&#39;</span> <span class="o">%</span> <span class="n">top</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">name</span>
+        <span class="k">return</span> <span class="nb">object</span><span class="o">.</span><span class="n">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="after_this_request"><a class="viewcode-back" href="../../flask/flask.html#flask.app.after_this_request">[docs]</a><span class="k">def</span> <span class="nf">after_this_request</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Executes a function after this request.  This is useful to modify</span>
+<span class="sd">    response objects.  The function is passed the response object and has</span>
+<span class="sd">    to return the same or a new one.</span>
+
+<span class="sd">    Example::</span>
+
+<span class="sd">        @app.route(&#39;/&#39;)</span>
+<span class="sd">        def index():</span>
+<span class="sd">            @after_this_request</span>
+<span class="sd">            def add_header(response):</span>
+<span class="sd">                response.headers[&#39;X-Foo&#39;] = &#39;Parachute&#39;</span>
+<span class="sd">                return response</span>
+<span class="sd">            return &#39;Hello World!&#39;</span>
+
+<span class="sd">    This is more useful if a function other than the view function wants to</span>
+<span class="sd">    modify a response.  For instance think of a decorator that wants to add</span>
+<span class="sd">    some headers without converting the return value into a response object.</span>
+
+<span class="sd">    .. versionadded:: 0.9</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_request_ctx_stack</span><span class="o">.</span><span class="n">top</span><span class="o">.</span><span class="n">_after_request_functions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">f</span></div>
+
+
+<div class="viewcode-block" id="copy_current_request_context"><a class="viewcode-back" href="../../flask/flask.html#flask.app.copy_current_request_context">[docs]</a><span class="k">def</span> <span class="nf">copy_current_request_context</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A helper function that decorates a function to retain the current</span>
+<span class="sd">    request context.  This is useful when working with greenlets.  The moment</span>
+<span class="sd">    the function is decorated a copy of the request context is created and</span>
+<span class="sd">    then pushed when the function is called.</span>
+
+<span class="sd">    Example::</span>
+
+<span class="sd">        import gevent</span>
+<span class="sd">        from flask import copy_current_request_context</span>
+
+<span class="sd">        @app.route(&#39;/&#39;)</span>
+<span class="sd">        def index():</span>
+<span class="sd">            @copy_current_request_context</span>
+<span class="sd">            def do_some_work():</span>
+<span class="sd">                # do some work here, it can access flask.request like you</span>
+<span class="sd">                # would otherwise in the view function.</span>
+<span class="sd">                ...</span>
+<span class="sd">            gevent.spawn(do_some_work)</span>
+<span class="sd">            return &#39;Regular response&#39;</span>
+
+<span class="sd">    .. versionadded:: 0.10</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">top</span> <span class="o">=</span> <span class="n">_request_ctx_stack</span><span class="o">.</span><span class="n">top</span>
+    <span class="k">if</span> <span class="n">top</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;This decorator can only be used at local scopes &#39;</span>
+            <span class="s1">&#39;when a request context is on the stack.  For instance within &#39;</span>
+            <span class="s1">&#39;view functions.&#39;</span><span class="p">)</span>
+    <span class="n">reqctx</span> <span class="o">=</span> <span class="n">top</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">wrapper</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">reqctx</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">f</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">update_wrapper</span><span class="p">(</span><span class="n">wrapper</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="has_request_context"><a class="viewcode-back" href="../../flask/flask.html#flask.app.has_request_context">[docs]</a><span class="k">def</span> <span class="nf">has_request_context</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;If you have code that wants to test if a request context is there or</span>
+<span class="sd">    not this function can be used.  For instance, you may want to take advantage</span>
+<span class="sd">    of request information if the request object is available, but fail</span>
+<span class="sd">    silently if it is unavailable.</span>
+
+<span class="sd">    ::</span>
+
+<span class="sd">        class User(db.Model):</span>
+
+<span class="sd">            def __init__(self, username, remote_addr=None):</span>
+<span class="sd">                self.username = username</span>
+<span class="sd">                if remote_addr is None and has_request_context():</span>
+<span class="sd">                    remote_addr = request.remote_addr</span>
+<span class="sd">                self.remote_addr = remote_addr</span>
+
+<span class="sd">    Alternatively you can also just test any of the context bound objects</span>
+<span class="sd">    (such as :class:`request` or :class:`g` for truthness)::</span>
+
+<span class="sd">        class User(db.Model):</span>
+
+<span class="sd">            def __init__(self, username, remote_addr=None):</span>
+<span class="sd">                self.username = username</span>
+<span class="sd">                if remote_addr is None and request:</span>
+<span class="sd">                    remote_addr = request.remote_addr</span>
+<span class="sd">                self.remote_addr = remote_addr</span>
+
+<span class="sd">    .. versionadded:: 0.7</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">_request_ctx_stack</span><span class="o">.</span><span class="n">top</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="has_app_context"><a class="viewcode-back" href="../../flask/flask.html#flask.app.has_app_context">[docs]</a><span class="k">def</span> <span class="nf">has_app_context</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Works like :func:`has_request_context` but for the application</span>
+<span class="sd">    context.  You can also just do a boolean check on the</span>
+<span class="sd">    :data:`current_app` object instead.</span>
+
+<span class="sd">    .. versionadded:: 0.9</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">_app_ctx_stack</span><span class="o">.</span><span class="n">top</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="AppContext"><a class="viewcode-back" href="../../flask/flask.html#flask.app.AppContext">[docs]</a><span class="k">class</span> <span class="nc">AppContext</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The application context binds an application object implicitly</span>
+<span class="sd">    to the current thread or greenlet, similar to how the</span>
+<span class="sd">    :class:`RequestContext` binds request information.  The application</span>
+<span class="sd">    context is also implicitly created if a request context is created</span>
+<span class="sd">    but the application is not on top of the individual application</span>
+<span class="sd">    context.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">app</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">app</span> <span class="o">=</span> <span class="n">app</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">url_adapter</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">create_url_adapter</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">g</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">app_ctx_globals_class</span><span class="p">()</span>
+
+        <span class="c1"># Like request context, app contexts can be pushed multiple times</span>
+        <span class="c1"># but there a basic &quot;refcount&quot; is enough to track them.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_refcnt</span> <span class="o">=</span> <span class="mi">0</span>
+
+<div class="viewcode-block" id="AppContext.push"><a class="viewcode-back" href="../../flask/flask.html#flask.app.AppContext.push">[docs]</a>    <span class="k">def</span> <span class="nf">push</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Binds the app context to the current context.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_refcnt</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">sys</span><span class="p">,</span> <span class="s1">&#39;exc_clear&#39;</span><span class="p">):</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exc_clear</span><span class="p">()</span>
+        <span class="n">_app_ctx_stack</span><span class="o">.</span><span class="n">push</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">appcontext_pushed</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AppContext.pop"><a class="viewcode-back" href="../../flask/flask.html#flask.app.AppContext.pop">[docs]</a>    <span class="k">def</span> <span class="nf">pop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc</span><span class="o">=</span><span class="n">_sentinel</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Pops the app context.&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_refcnt</span> <span class="o">-=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_refcnt</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">exc</span> <span class="ow">is</span> <span class="n">_sentinel</span><span class="p">:</span>
+                    <span class="n">exc</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">do_teardown_appcontext</span><span class="p">(</span><span class="n">exc</span><span class="p">)</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="n">rv</span> <span class="o">=</span> <span class="n">_app_ctx_stack</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+        <span class="k">assert</span> <span class="n">rv</span> <span class="ow">is</span> <span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;Popped wrong app context.  (</span><span class="si">%r</span><span class="s1"> instead of </span><span class="si">%r</span><span class="s1">)&#39;</span> \
+            <span class="o">%</span> <span class="p">(</span><span class="n">rv</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="n">appcontext_popped</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">push</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_value</span><span class="p">,</span> <span class="n">tb</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">exc_value</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">BROKEN_PYPY_CTXMGR_EXIT</span> <span class="ow">and</span> <span class="n">exc_type</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">reraise</span><span class="p">(</span><span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_value</span><span class="p">,</span> <span class="n">tb</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="RequestContext"><a class="viewcode-back" href="../../flask/flask.html#flask.app.RequestContext">[docs]</a><span class="k">class</span> <span class="nc">RequestContext</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The request context contains all request relevant information.  It is</span>
+<span class="sd">    created at the beginning of the request and pushed to the</span>
+<span class="sd">    `_request_ctx_stack` and removed at the end of it.  It will create the</span>
+<span class="sd">    URL adapter and request object for the WSGI environment provided.</span>
+
+<span class="sd">    Do not attempt to use this class directly, instead use</span>
+<span class="sd">    :meth:`~flask.Flask.test_request_context` and</span>
+<span class="sd">    :meth:`~flask.Flask.request_context` to create this object.</span>
+
+<span class="sd">    When the request context is popped, it will evaluate all the</span>
+<span class="sd">    functions registered on the application for teardown execution</span>
+<span class="sd">    (:meth:`~flask.Flask.teardown_request`).</span>
+
+<span class="sd">    The request context is automatically popped at the end of the request</span>
+<span class="sd">    for you.  In debug mode the request context is kept around if</span>
+<span class="sd">    exceptions happen so that interactive debuggers have a chance to</span>
+<span class="sd">    introspect the data.  With 0.4 this can also be forced for requests</span>
+<span class="sd">    that did not fail and outside of ``DEBUG`` mode.  By setting</span>
+<span class="sd">    ``&#39;flask._preserve_context&#39;`` to ``True`` on the WSGI environment the</span>
+<span class="sd">    context will not pop itself at the end of the request.  This is used by</span>
+<span class="sd">    the :meth:`~flask.Flask.test_client` for example to implement the</span>
+<span class="sd">    deferred cleanup functionality.</span>
+
+<span class="sd">    You might find this helpful for unittests where you need the</span>
+<span class="sd">    information from the context local around for a little longer.  Make</span>
+<span class="sd">    sure to properly :meth:`~werkzeug.LocalStack.pop` the stack yourself in</span>
+<span class="sd">    that situation, otherwise your unittests will leak memory.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">app</span><span class="p">,</span> <span class="n">environ</span><span class="p">,</span> <span class="n">request</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">app</span> <span class="o">=</span> <span class="n">app</span>
+        <span class="k">if</span> <span class="n">request</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">request</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">request_class</span><span class="p">(</span><span class="n">environ</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">request</span> <span class="o">=</span> <span class="n">request</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">url_adapter</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">create_url_adapter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">flashes</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">session</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># Request contexts can be pushed multiple times and interleaved with</span>
+        <span class="c1"># other request contexts.  Now only if the last level is popped we</span>
+        <span class="c1"># get rid of them.  Additionally if an application context is missing</span>
+        <span class="c1"># one is created implicitly so for each level we add this information</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_implicit_app_ctx_stack</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># indicator if the context was preserved.  Next time another context</span>
+        <span class="c1"># is pushed the preserved context is popped.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">preserved</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="c1"># remembers the exception for pop if there is one in case the context</span>
+        <span class="c1"># preservation kicks in.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_preserved_exc</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># Functions that should be executed after the request on the response</span>
+        <span class="c1"># object.  These will be called before the regular &quot;after_request&quot;</span>
+        <span class="c1"># functions.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_after_request_functions</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">match_request</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_get_g</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">_app_ctx_stack</span><span class="o">.</span><span class="n">top</span><span class="o">.</span><span class="n">g</span>
+    <span class="k">def</span> <span class="nf">_set_g</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="n">_app_ctx_stack</span><span class="o">.</span><span class="n">top</span><span class="o">.</span><span class="n">g</span> <span class="o">=</span> <span class="n">value</span>
+    <span class="n">g</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">_get_g</span><span class="p">,</span> <span class="n">_set_g</span><span class="p">)</span>
+    <span class="k">del</span> <span class="n">_get_g</span><span class="p">,</span> <span class="n">_set_g</span>
+
+<div class="viewcode-block" id="RequestContext.copy"><a class="viewcode-back" href="../../flask/flask.html#flask.app.RequestContext.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Creates a copy of this request context with the same request object.</span>
+<span class="sd">        This can be used to move a request context to a different greenlet.</span>
+<span class="sd">        Because the actual request object is the same this cannot be used to</span>
+<span class="sd">        move a request context to a different thread unless access to the</span>
+<span class="sd">        request object is locked.</span>
+
+<span class="sd">        .. versionadded:: 0.10</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__class__</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="p">,</span>
+            <span class="n">environ</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">environ</span><span class="p">,</span>
+            <span class="n">request</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="RequestContext.match_request"><a class="viewcode-back" href="../../flask/flask.html#flask.app.RequestContext.match_request">[docs]</a>    <span class="k">def</span> <span class="nf">match_request</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Can be overridden by a subclass to hook into the matching</span>
+<span class="sd">        of the request.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">url_rule</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">view_args</span> <span class="o">=</span> \
+                <span class="bp">self</span><span class="o">.</span><span class="n">url_adapter</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">return_rule</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">url_rule</span> <span class="o">=</span> <span class="n">url_rule</span>
+        <span class="k">except</span> <span class="n">HTTPException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">routing_exception</span> <span class="o">=</span> <span class="n">e</span></div>
+
+<div class="viewcode-block" id="RequestContext.push"><a class="viewcode-back" href="../../flask/flask.html#flask.app.RequestContext.push">[docs]</a>    <span class="k">def</span> <span class="nf">push</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Binds the request context to the current context.&quot;&quot;&quot;</span>
+        <span class="c1"># If an exception occurs in debug mode or if context preservation is</span>
+        <span class="c1"># activated under exception situations exactly one context stays</span>
+        <span class="c1"># on the stack.  The rationale is that you want to access that</span>
+        <span class="c1"># information under debug situations.  However if someone forgets to</span>
+        <span class="c1"># pop that context again we want to make sure that on the next push</span>
+        <span class="c1"># it&#39;s invalidated, otherwise we run at risk that something leaks</span>
+        <span class="c1"># memory.  This is usually only a problem in test suite since this</span>
+        <span class="c1"># functionality is not active in production environments.</span>
+        <span class="n">top</span> <span class="o">=</span> <span class="n">_request_ctx_stack</span><span class="o">.</span><span class="n">top</span>
+        <span class="k">if</span> <span class="n">top</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">top</span><span class="o">.</span><span class="n">preserved</span><span class="p">:</span>
+            <span class="n">top</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">top</span><span class="o">.</span><span class="n">_preserved_exc</span><span class="p">)</span>
+
+        <span class="c1"># Before we push the request context we have to ensure that there</span>
+        <span class="c1"># is an application context.</span>
+        <span class="n">app_ctx</span> <span class="o">=</span> <span class="n">_app_ctx_stack</span><span class="o">.</span><span class="n">top</span>
+        <span class="k">if</span> <span class="n">app_ctx</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">app_ctx</span><span class="o">.</span><span class="n">app</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="p">:</span>
+            <span class="n">app_ctx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">app_context</span><span class="p">()</span>
+            <span class="n">app_ctx</span><span class="o">.</span><span class="n">push</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_implicit_app_ctx_stack</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">app_ctx</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_implicit_app_ctx_stack</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">sys</span><span class="p">,</span> <span class="s1">&#39;exc_clear&#39;</span><span class="p">):</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exc_clear</span><span class="p">()</span>
+
+        <span class="n">_request_ctx_stack</span><span class="o">.</span><span class="n">push</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="c1"># Open the session at the moment that the request context is</span>
+        <span class="c1"># available. This allows a custom open_session method to use the</span>
+        <span class="c1"># request context (e.g. code that access database information</span>
+        <span class="c1"># stored on `g` instead of the appcontext).</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">session</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">open_session</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">session</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">make_null_session</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="RequestContext.pop"><a class="viewcode-back" href="../../flask/flask.html#flask.app.RequestContext.pop">[docs]</a>    <span class="k">def</span> <span class="nf">pop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc</span><span class="o">=</span><span class="n">_sentinel</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Pops the request context and unbinds it by doing that.  This will</span>
+<span class="sd">        also trigger the execution of functions registered by the</span>
+<span class="sd">        :meth:`~flask.Flask.teardown_request` decorator.</span>
+
+<span class="sd">        .. versionchanged:: 0.9</span>
+<span class="sd">           Added the `exc` argument.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">app_ctx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_implicit_app_ctx_stack</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">clear_request</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_implicit_app_ctx_stack</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">preserved</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_preserved_exc</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="k">if</span> <span class="n">exc</span> <span class="ow">is</span> <span class="n">_sentinel</span><span class="p">:</span>
+                    <span class="n">exc</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">do_teardown_request</span><span class="p">(</span><span class="n">exc</span><span class="p">)</span>
+
+                <span class="c1"># If this interpreter supports clearing the exception information</span>
+                <span class="c1"># we do that now.  This will only go into effect on Python 2.x,</span>
+                <span class="c1"># on 3.x it disappears automatically at the end of the exception</span>
+                <span class="c1"># stack.</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">sys</span><span class="p">,</span> <span class="s1">&#39;exc_clear&#39;</span><span class="p">):</span>
+                    <span class="n">sys</span><span class="o">.</span><span class="n">exc_clear</span><span class="p">()</span>
+
+                <span class="n">request_close</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">,</span> <span class="s1">&#39;close&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">request_close</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">request_close</span><span class="p">()</span>
+                <span class="n">clear_request</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="n">rv</span> <span class="o">=</span> <span class="n">_request_ctx_stack</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+
+            <span class="c1"># get rid of circular dependencies at the end of the request</span>
+            <span class="c1"># so that we don&#39;t require the GC to be active.</span>
+            <span class="k">if</span> <span class="n">clear_request</span><span class="p">:</span>
+                <span class="n">rv</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;werkzeug.request&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+            <span class="c1"># Get rid of the app as well if necessary.</span>
+            <span class="k">if</span> <span class="n">app_ctx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">app_ctx</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">exc</span><span class="p">)</span>
+
+            <span class="k">assert</span> <span class="n">rv</span> <span class="ow">is</span> <span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;Popped wrong request context.  &#39;</span> \
+                <span class="s1">&#39;(</span><span class="si">%r</span><span class="s1"> instead of </span><span class="si">%r</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">rv</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="RequestContext.auto_pop"><a class="viewcode-back" href="../../flask/flask.html#flask.app.RequestContext.auto_pop">[docs]</a>    <span class="k">def</span> <span class="nf">auto_pop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;flask._preserve_context&#39;</span><span class="p">)</span> <span class="ow">or</span> \
+           <span class="p">(</span><span class="n">exc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">preserve_context_on_exception</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">preserved</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_preserved_exc</span> <span class="o">=</span> <span class="n">exc</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">exc</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">push</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_value</span><span class="p">,</span> <span class="n">tb</span><span class="p">):</span>
+        <span class="c1"># do not pop the request stack if we are in debug mode and an</span>
+        <span class="c1"># exception happened.  This will allow the debugger to still</span>
+        <span class="c1"># access the request object in the interactive shell.  Furthermore</span>
+        <span class="c1"># the context can be force kept alive for the test client.</span>
+        <span class="c1"># See flask.testing for how this works.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">auto_pop</span><span class="p">(</span><span class="n">exc_value</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">BROKEN_PYPY_CTXMGR_EXIT</span> <span class="ow">and</span> <span class="n">exc_type</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">reraise</span><span class="p">(</span><span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_value</span><span class="p">,</span> <span class="n">tb</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;&lt;</span><span class="si">%s</span><span class="s1"> </span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s1"> [</span><span class="si">%s</span><span class="s1">] of </span><span class="si">%s</span><span class="s1">&gt;&#39;</span> <span class="o">%</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__class__</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">url</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">method</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+        <span class="p">)</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Author.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.8</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
