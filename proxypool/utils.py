@@ -1,14 +1,10 @@
 import requests
-import lxml
 import asyncio
-import time
 import aiohttp
-from bs4 import BeautifulSoup
 from requests.exceptions import ConnectionError
 
 base_headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 \
-    (KHTML, like Gecko) Chrome/54.0.2840.71 Safari/537.36',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.71 Safari/537.36',
     'Accept-Encoding': 'gzip, deflate, sdch',
     'Accept-Language': 'zh-CN,zh;q=0.8'
 }
@@ -16,7 +12,7 @@ base_headers = {
 
 def get_page(url, options={}):
     headers = dict(base_headers, **options)
-    print('Getting', url, headers)
+    print('Getting', url)
     try:
         r = requests.get(url, headers=headers)
         print('Getting result', url, r.status_code)

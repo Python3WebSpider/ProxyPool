@@ -1,21 +1,11 @@
-"""
--------------------------------------------------
-    File Name:     schedule.py
-    Description:   调度器模块，
-                   包含ValidityTester，PoolAdder，
-                   Schedule三个类，负责维护代理池。
-    Author:        Liu
-    Date:          2016/12/9
--------------------------------------------------
-"""
 import time
 from multiprocessing import Process
 import asyncio
 import aiohttp
-from .db import RedisClient
-from .error import ResourceDepletionError
-from .getter import FreeProxyGetter
-from .setting import *
+from proxypool.db import RedisClient
+from proxypool.error import ResourceDepletionError
+from proxypool.getter import FreeProxyGetter
+from proxypool.setting import *
 
 
 class ValidityTester(object):
@@ -23,20 +13,22 @@ class ValidityTester(object):
     检验器，负责对未知的代理进行异步检测。
     """
     # 用百度的首页来检验
-    test_api = 'http://www.baidu.com'
+    test_api = TEST_API
 
     def __init__(self):
         self._raw_proxies = None
         self._usable_proxies = []
 
     def set_raw_proxies(self, proxies):
-        """设置待检测的代理。
+        """
+        设置待检测的代理。
         """
         self._raw_proxies = proxies
         self._usable_proxies = []
 
     async def test_single_proxy(self, proxy):
-        """检测单个代理，如果可用，则将其加入_usable_proxies
+        """
+        检测单个代理，如果可用，则将其加入_usable_proxies
         """
         async with aiohttp.ClientSession() as session:
             try:
@@ -44,13 +36,14 @@ class ValidityTester(object):
                 print('Testing', real_proxy)
                 async with session.get(self.test_api, proxy=real_proxy, timeout=15) as response:
                     await response
-                    print('Response from', proxy)
                     self._usable_proxies.append(proxy)
+                    print('Valid proxy', proxy)
             except Exception:
-                pass
+                print('Invalid proxy', proxy)
 
     def test(self):
-        """异步检测_raw_proxies中的全部代理。
+        """
+        异步检测_raw_proxies中的全部代理。
         """
         print('ValidityTester is working')
         loop = asyncio.get_event_loop()
@@ -92,9 +85,6 @@ class PoolAdder(object):
             for callback_label in range(self._crawler.__CrawlFuncCount__):
                 callback = self._crawler.__CrawlFunc__[callback_label]
                 raw_proxies = self._crawler.get_raw_proxies(callback)
-                self._tester.set_raw_proxies(raw_proxies)
-                self._tester.test()
-                self._conn.put_many(self._tester.get_usable_proxies())
                 proxy_count += len(raw_proxies)
             if proxy_count == 0:
                 raise ResourceDepletionError

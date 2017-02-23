@@ -1,18 +1,3 @@
-"""
--------------------------------------------------
-    File Name:     proxyGetter.py
-    Description:   代理抓取模块，负责与网络的交互。
-                   注意，代理网站的HTML结构可能会时常的更新，
-                   会导致本文件下的抓取函数失效，所以，在运行
-                   代理池之前，需要更新一下FreeProxyGetter类
-                   中以crawl_开头的方法。
-    Author:        Liu
-    Date:          2016/12/9
--------------------------------------------------
-"""
-
-import time
-
 from .utils import get_page
 from pyquery import PyQuery as pq
 
@@ -43,7 +28,7 @@ class FreeProxyGetter(object, metaclass=ProxyMetaclass):
     添加器会自动识别并调用此类函数。
     """
     
-    def get_raw_proxies(self, callback, count=40):
+    def get_raw_proxies(self, callback):
         proxies = []
         print('Callback', callback)
         for proxy in eval("self.{}()".format(callback)):
