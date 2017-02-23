@@ -1,15 +1,15 @@
 from setuptools import setup
 
 setup(
-    name='proxypool',
+    name='proxy-pool',
     version='1.0.0',
-    description='High-performance cross-platform proxy pool',
-    long_description='Please go to https://github.com/WiseDoge/ProxyPool',
-    author='wisedoge',
-    author_email='wisedoge@outlook.com',
-    url='https://github.com/WiseDoge/ProxyPool',
+    description='High performance proxy pool',
+    long_description='A proxy pool project modified from WiseDoge/ProxyPool',
+    author='Germey',
+    author_email='cqc@cuiqingcai.com',
+    url='https://github.com/Germey/ProxyPool',
     packages=[
-        'proxypool'
+        'proxy-pool'
     ],
     py_modules=['run'],
     include_package_data=True,
@@ -17,13 +17,12 @@ setup(
     install_requires=[
         'aiohttp',
         'requests',
-        'bs4',
         'flask',
         'redis',
-        'lxml'
+        'pyquery'
     ],
     entry_points={
-        'console_scripts': ['proxypool_run=run:cli']
+        'console_scripts': ['proxy_pool_run=run:cli']
     },
     license='apache 2.0',
     zip_safe=False,

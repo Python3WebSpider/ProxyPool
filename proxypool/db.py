@@ -4,38 +4,34 @@ from proxypool.setting import HOST, PORT
 
 
 class RedisClient(object):
-    """
-    Redis数据库操作类。
-    """
-
     def __init__(self, host=HOST, port=PORT):
         self._db = redis.Redis(host, port)
 
     def get(self, count=1):
-        """从Pool中获取一定量数据。"""
+        """
+        get proxies from redis
+        """
         proxies = self._db.lrange("proxies", 0, count - 1)
         self._db.ltrim("proxies", count, -1)
         print(proxies)
         return proxies
 
     def put(self, proxy):
-        """将代理压入Pool中。
-        用Redis的set容器来负责去重，如果proxy能被压入proxy_set，
-        就将其放入proxy pool中，否则不压入。
         """
-        if self._db.sadd("set", proxy):
-            self._db.rpush("proxies", proxy)
-        else:
-            pass
+        add proxy to right top
+        """
+        self._db.rpush("proxies", proxy)
 
     def put_many(self, proxies):
-        """将一定量的代理压入Pool。
+        """
+        put many proxies to right
         """
         for proxy in proxies:
             self.put(proxy)
 
     def pop(self):
-        """弹出一个可用代理。
+        """
+        get proxy from right.
         """
         try:
             return self._db.rpop("proxies").decode('utf-8')
@@ -44,12 +40,14 @@ class RedisClient(object):
 
     @property
     def queue_len(self):
-        """获取proxy pool的大小。
+        """
+        get length from queue.
         """
         return self._db.llen("proxies")
 
     def flush(self):
-        """刷新Redis中的全部内容，测试用。
+        """
+        flush db
         """
         self._db.flushall()
 
