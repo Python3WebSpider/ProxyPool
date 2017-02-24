@@ -13,7 +13,6 @@ class RedisClient(object):
         """
         proxies = self._db.lrange("proxies", 0, count - 1)
         self._db.ltrim("proxies", count, -1)
-        print(proxies)
         return proxies
 
     def put(self, proxy):
@@ -21,13 +20,6 @@ class RedisClient(object):
         add proxy to right top
         """
         self._db.rpush("proxies", proxy)
-
-    def put_many(self, proxies):
-        """
-        put many proxies to right
-        """
-        for proxy in proxies:
-            self.put(proxy)
 
     def pop(self):
         """
