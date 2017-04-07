@@ -1,11 +1,14 @@
 import redis
 from proxypool.error import PoolEmptyError
-from proxypool.setting import HOST, PORT
+from proxypool.setting import HOST, PORT, PASSWORD
 
 
 class RedisClient(object):
     def __init__(self, host=HOST, port=PORT):
-        self._db = redis.Redis(host, port)
+        if PASSWORD:
+            self._db = redis.Redis(host=host, port=port, password=PASSWORD)
+        else:
+            self._db = redis.Redis(host=host, port=port)
 
     def get(self, count=1):
         """

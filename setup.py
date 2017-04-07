@@ -5,7 +5,7 @@ setup(
     version='1.0.0',
     description='High performance proxy pool',
     long_description='A proxy pool project modified from WiseDoge/ProxyPool',
-    author='Germey',
+    author=['Germey', 'WiseDoge'],
     author_email='cqc@cuiqingcai.com',
     url='https://github.com/Germey/ProxyPool',
     packages=[
