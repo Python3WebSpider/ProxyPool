@@ -3,7 +3,11 @@ from pyquery import PyQuery as pq
 
 
 class ProxyMetaclass(type):
-
+    """
+        元类，在FreeProxyGetter类中加入
+        __CrawlFunc__和__CrawlFuncCount__
+        两个参数，分别表示爬虫函数，和爬虫函数的数量。
+    """
     def __new__(cls, name, bases, attrs):
         count = 0
         attrs['__CrawlFunc__'] = []
