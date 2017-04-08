@@ -2,51 +2,62 @@
 
 ## 安装
 
-### ① 直接使用
+### 安装Python
+
+至少Python3.5以上
+
+### 安装Redis
+
+安装好之后将Redis服务开启
+
+### 配置代理池
+
+```
+cd proxypool
+```
+
+进入proxypool目录，修改settings.py文件
+
+PASSWORD为Redis密码，如果为空，则设置为None
 
 #### 安装依赖
 
-`$ pip install -r requirements.txt`
+```
+pip3 install -r requirements.txt
+```
 
 #### 打开代理池和API
 
-`$ cd proxypool`
+```
+python3 run.py
+```
 
-`$ python3 run.py `
-
-### ② 安装使用
-
-#### 安装
-
-`$ cd proxypool`
-
-`$ python setup.py install`
-
-#### 打开代理池和API
-
-`$ proxypool_run`
+## 获取代理
 
 
-也可以在程序代码中用相应的语言获取，例如:
+利用requests获取方法如下
 
 ```
 import requests
-from bs4 import BeautifulSoup
-import lxml
+
+PROXY_POOL_URL = 'http://localhost:5000/get'
 
 def get_proxy():
-    r = requests.get('http://127.0.0.1:5000/get')
-    proxy = BeautifulSoup(r.text, "lxml").get_text()
-    return proxy
+    try:
+        response = requests.get(PROXY_POOL_URL)
+        if response.status_code == 200:
+            return response.text
+    except ConnectionError:
+        return None
 ```
 
 ## 各模块功能
 
-* proxyGetter.py
+* getter.py
 
   > 爬虫模块
 
-  * class proxypool.proxyGetter.FreeProxyGetter
+  * class proxypool.getter.FreeProxyGetter
 
     > 爬虫类，用于抓取代理源网站的代理，用户可复写和补充抓取规则。
 
@@ -90,7 +101,7 @@ def get_proxy():
 
 * api.py
 
-  > API模块，启动一个Web服务器，对外提供代理的获取功能。
+  > API模块，启动一个Web服务器，使用Flask实现，对外提供代理的获取功能。
 
 * utils.py
 
