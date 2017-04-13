@@ -2,7 +2,10 @@ import time
 from multiprocessing import Process
 import asyncio
 import aiohttp
-from aiohttp.errors import ProxyConnectionError
+try:
+    from aiohttp.errors import ProxyConnectionError
+except:
+    from aiohttp import  ClientProxyConnectionError as ProxyConnectionError
 from proxypool.db import RedisClient
 from proxypool.error import ResourceDepletionError
 from proxypool.getter import FreeProxyGetter
