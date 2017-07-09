@@ -1,75 +1,39 @@
-from .utils import get_page
-from pyquery import PyQuery as pq
+from proxypool.tester import Tester
+from proxypool.db import RedisClient
+from proxypool.crawler import Crawler
+from proxypool.setting import *
 
 
-class ProxyMetaclass(type):
-    """
-        元类，在FreeProxyGetter类中加入
-        __CrawlFunc__和__CrawlFuncCount__
-        两个参数，分别表示爬虫函数，和爬虫函数的数量。
-    """
-    def __new__(cls, name, bases, attrs):
-        count = 0
-        attrs['__CrawlFunc__'] = []
-        for k, v in attrs.items():
-            if 'crawl_' in k:
-                attrs['__CrawlFunc__'].append(k)
-                count += 1
-        attrs['__CrawlFuncCount__'] = count
-        return type.__new__(cls, name, bases, attrs)
-
-
-class FreeProxyGetter(object, metaclass=ProxyMetaclass):
-
-    def get_raw_proxies(self, callback):
-        proxies = []
-        print('Callback', callback)
-        for proxy in eval("self.{}()".format(callback)):
-            print('Getting', proxy, 'from', callback)
-            proxies.append(proxy)
-        return proxies
-
-    def crawl_daili66(self, page_count=4):
-        start_url = 'http://www.66ip.cn/{}.html'
-        urls = [start_url.format(page) for page in range(1, page_count + 1)]
-        for url in urls:
-            print('Crawling', url)
-            html = get_page(url)
-            if html:
-                doc = pq(html)
-                trs = doc('.containerbox table tr:gt(0)').items()
-                for tr in trs:
-                    ip = tr.find('td:nth-child(1)').text()
-                    port = tr.find('td:nth-child(2)').text()
-                    yield ':'.join([ip, port])
-
-    def crawl_proxy360(self):
-        start_url = 'http://www.proxy360.cn/Region/China'
-        print('Crawling', start_url)
-        html = get_page(start_url)
-        if html:
-            doc = pq(html)
-            lines = doc('div[name="list_proxy_ip"]').items()
-            for line in lines:
-                ip = line.find('.tbBottomLine:nth-child(1)').text()
-                port = line.find('.tbBottomLine:nth-child(2)').text()
-                yield ':'.join([ip, port])
-
-    def crawl_goubanjia(self):
-        start_url = 'http://www.goubanjia.com/free/gngn/index.shtml'
-        html = get_page(start_url)
-        if html:
-            doc = pq(html)
-            tds = doc('td.ip').items()
-            for td in tds:
-                td.find('p').remove()
-                yield td.text().replace(' ', '')
-
-    def crawl_haoip(self):
-        start_url = 'http://haoip.cc/tiqu.htm'
-        html = get_page(start_url)
-        if html:
-            doc = pq(html)
-            results = doc('.row .col-xs-12').html().split('<br/>')
-            for result in results:
-                if result: yield result.strip()
+class Getter():
+    def __init__(self):
+        self.redis = RedisClient()
+        self.tester = Tester()
+        self.crawler = Crawler()
+    
+    def is_over_threshold(self):
+        """
+        判断是否达到了代理池限制
+        """
+        if self.redis.count() >= POOL_UPPER_THRESHOLD:
+            return True
+        else:
+            return False
+    
+    def run(self):
+        print('获取器开始执行')
+        proxy_count = 0
+        while not self.is_over_threshold():
+            for callback_label in range(self.crawler.__CrawlFuncCount__):
+                callback = self.crawler.__CrawlFunc__[callback_label]
+                # 获取代理
+                proxies = self.crawler.get_proxies(callback)
+                # 设置代理并测试
+                self.tester.set_proxies(proxies)
+                self.tester.run()
+                proxy_count += len(proxies)
+                if self.is_over_threshold():
+                    print('代理池已满，暂停抓取')
+                    break
+            if proxy_count == 0:
+                # 代理池枯竭
+                print('代理池已枯竭')

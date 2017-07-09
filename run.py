@@ -1,11 +1,11 @@
 from proxypool.api import app
-from proxypool.schedule import Schedule
+from proxypool.scheduler import Scheduler
+
 
 def main():
-    s = Schedule()
+    s = Scheduler()
     s.run()
-    app.run()
+
 
 if __name__ == '__main__':
     main()
-
