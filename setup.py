@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(
-    name='proxy-pool',
+    name='proxypool',
     version='1.0.0',
     description='High performance proxy pool',
     long_description='A proxy pool project modified from WiseDoge/ProxyPool',
@@ -9,7 +9,7 @@ setup(
     author_email='cqc@cuiqingcai.com',
     url='https://github.com/Germey/ProxyPool',
     packages=[
-        'proxy-pool'
+        'proxypool'
     ],
     py_modules=['run'],
     include_package_data=True,
@@ -22,7 +22,7 @@ setup(
         'pyquery'
     ],
     entry_points={
-        'console_scripts': ['proxy_pool_run=run:cli']
+        'console_scripts': ['proxy_pool_run=run:main']
     },
     license='apache 2.0',
     zip_safe=False,

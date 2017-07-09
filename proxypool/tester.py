@@ -28,20 +28,21 @@ class Tester(object):
         :param proxy: 
         :return: 
         """
-        async with aiohttp.ClientSession() as session:
+        conn = aiohttp.TCPConnector(verify_ssl=False)
+        async with aiohttp.ClientSession(connector=conn) as session:
             try:
                 if isinstance(proxy, bytes):
                     proxy = proxy.decode('utf-8')
                 real_proxy = 'http://' + proxy
                 print('正在测试', proxy)
-                async with session.get(TEST_API, proxy=real_proxy, timeout=15) as response:
+                async with session.get(TEST_URL, proxy=real_proxy, timeout=15) as response:
                     if response.status in VALID_STATUS_CODES:
                         self.redis.add(proxy)
                         print('代理可用', proxy)
                     else:
                         self.redis.decrease(proxy)
                         print('请求响应码不合法，IP', proxy)
-            except (ClientError, aiohttp.client_exceptions.ClientConnectorError, asyncio.TimeoutError):
+            except (ClientError, aiohttp.client_exceptions.ClientConnectorError, asyncio.TimeoutError, AttributeError):
                 if self.redis.exists(proxy):
                     self.redis.decrease(proxy)
                 print('代理请求失败', proxy)

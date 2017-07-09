@@ -33,7 +33,7 @@ class RedisClient(object):
         :param score:
         :return:
         """
-        self.db.zadd(REDIS_KEY, score, proxy)
+        return self.db.zadd(REDIS_KEY, score, proxy)
     
     def random(self):
         """
@@ -74,7 +74,7 @@ class RedisClient(object):
         :param proxy:
         :return:
         """
-        self.db.zadd(REDIS_KEY, MAX_SCORE, proxy)
+        return self.db.zadd(REDIS_KEY, MAX_SCORE, proxy)
     
     def count(self):
         """
@@ -90,7 +90,7 @@ class RedisClient(object):
         """
         all = self.db.zrangebyscore(REDIS_KEY, MIN_SCORE, MAX_SCORE)
         return [item.decode('utf-8') for item in all]
-
+    
 
 if __name__ == '__main__':
     conn = RedisClient()

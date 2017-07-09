@@ -16,12 +16,12 @@ VALID_STATUS_CODES = [200]
 POOL_UPPER_THRESHOLD = 10000
 
 # 检查周期
-TESTER_CYCLE = 30
+TESTER_CYCLE = 20
 # 获取周期
 GETTER_CYCLE = 20
 
 # 测试API，建议抓哪个网站测哪个
-TEST_API = 'https://m.weibo.cn/api/container/getIndex?type=uid&value=2145291155&containerid=1076032145291155&page=14'
+TEST_URL = 'https://m.weibo.cn/api/container/getIndex?type=uid&value=2145291155&containerid=1076032145291155&page=14'
 
 # API配置
 API_HOST = '0.0.0.0'
