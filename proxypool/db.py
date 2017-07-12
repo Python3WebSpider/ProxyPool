@@ -1,7 +1,7 @@
 import redis
 from proxypool.error import PoolEmptyError
 from proxypool.setting import REDIS_HOST, REDIS_PORT, REDIS_PASSWORD, REDIS_KEY
-from proxypool.setting import MAX_SCORE, MIN_SCORE
+from proxypool.setting import MAX_SCORE, MIN_SCORE, INITIAL_SCORE
 from random import choice
 
 
@@ -26,7 +26,7 @@ class RedisClient(object):
         else:
             raise PoolEmptyError
     
-    def add(self, proxy, score=MAX_SCORE):
+    def add(self, proxy, score=INITIAL_SCORE):
         """
         添加代理，设置分数为最高
         :param proxy:
