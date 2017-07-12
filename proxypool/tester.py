@@ -11,16 +11,7 @@ from proxypool.setting import *
 
 class Tester(object):
     def __init__(self):
-        self.proxies = None
         self.redis = RedisClient()
-    
-    def set_proxies(self, proxies):
-        """
-        设置代理
-        :param proxies:
-        :return:
-        """
-        self.proxies = proxies
     
     async def test_single_proxy(self, proxy):
         """
@@ -54,8 +45,9 @@ class Tester(object):
         """
         print('测试器开始运行')
         try:
+            proxies = self.redis.all()
             loop = asyncio.get_event_loop()
-            tasks = [self.test_single_proxy(proxy) for proxy in self.proxies]
+            tasks = [self.test_single_proxy(proxy) for proxy in proxies]
             loop.run_until_complete(asyncio.wait(tasks))
         except Exception as e:
             print('测试器发生错误', e.args)

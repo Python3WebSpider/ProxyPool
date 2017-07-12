@@ -11,18 +11,9 @@ class Scheduler():
         """
         定时测试代理
         """
-        redis = RedisClient()
         tester = Tester()
         while True:
             print('测试器开始运行')
-            count = redis.count()
-            if count == 0:
-                print('代理池已枯竭，等待添加代理')
-                time.sleep(cycle)
-                continue
-            proxies = redis.all()
-            tester.set_proxies(proxies)
-            print('开始检测全部代理')
             tester.run()
             time.sleep(cycle)
     

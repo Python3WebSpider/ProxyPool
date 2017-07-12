@@ -33,7 +33,8 @@ class RedisClient(object):
         :param score:
         :return:
         """
-        return self.db.zadd(REDIS_KEY, score, proxy)
+        if self.db.zscore(proxy):
+            return self.db.zadd(REDIS_KEY, score, proxy)
     
     def random(self):
         """
