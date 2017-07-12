@@ -1,7 +1,7 @@
 import requests
 from proxypool.setting import TEST_URL
 
-proxy = '49.86.62.22:808'
+proxy = '96.9.90.90:8080'
 
 proxies = {
     'http': 'http://' + proxy,

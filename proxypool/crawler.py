@@ -24,6 +24,14 @@ class Crawler(object, metaclass=ProxyMetaclass):
             proxies.append(proxy)
         return proxies
     
+    def crawl_daxiang(self):
+        url = 'http://vtp.daxiangdaili.com/ip/?tid=555546364094534&num=100'
+        html = get_page(url)
+        if html:
+            urls = html.split('\n')
+            for url in urls:
+                yield url
+    
     def crawl_kuaidaili(self):
         url = 'http://dev.kuaidaili.com/api/getproxy/?orderid=959961765125099&num=100&b_pcchrome=1&b_pcie=1&b_pcff=1&protocol=1&method=1&an_an=1&an_ha=1&quality=1&format=json&sep=2'
         html = get_page(url)

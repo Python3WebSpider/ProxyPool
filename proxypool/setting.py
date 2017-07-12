@@ -1,9 +1,12 @@
-# Redis数据库的地址和端口
-REDIS_HOST = 'localhost'
+# Redis数据库地址
+REDIS_HOST = 'DataCrawl-Pool.redis.cache.chinacloudapi.cn'
+
+# Redis端口
 REDIS_PORT = 6379
 
-# 如果Redis有密码，则添加这句密码，否则设置为None
-REDIS_PASSWORD = 'foobared'
+# Redis密码，如无填None
+REDIS_PASSWORD = None
+
 REDIS_KEY = 'proxies'
 
 # 代理分数

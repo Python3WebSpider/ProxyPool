@@ -37,14 +37,18 @@ class RedisClient(object):
     
     def random(self):
         """
-        随机获取有效代理
+        随机获取有效代理，首先尝试获取最高分数代理，如果不存在，按照排名获取，否则异常
         :return:
         """
         result = self.db.zrangebyscore(REDIS_KEY, MAX_SCORE, MAX_SCORE)
         if len(result):
             return choice(result).decode('utf-8')
         else:
-            raise PoolEmptyError
+            result = self.db.zrevrange(REDIS_KEY, 0, 100)
+            if len(result):
+                return choice(result).decode('utf-8')
+            else:
+                raise PoolEmptyError
     
     def decrease(self, proxy):
         """
@@ -90,7 +94,7 @@ class RedisClient(object):
         """
         all = self.db.zrangebyscore(REDIS_KEY, MIN_SCORE, MAX_SCORE)
         return [item.decode('utf-8') for item in all]
-    
+
 
 if __name__ == '__main__':
     conn = RedisClient()

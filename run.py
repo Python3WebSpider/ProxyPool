@@ -1,4 +1,3 @@
-from proxypool.api import app
 from proxypool.scheduler import Scheduler
 
 
