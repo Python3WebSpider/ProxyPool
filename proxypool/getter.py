@@ -22,7 +22,7 @@ class Getter():
     def run(self):
         print('获取器开始执行')
         proxy_count = 0
-        while not self.is_over_threshold():
+        if not self.is_over_threshold():
             for callback_label in range(self.crawler.__CrawlFuncCount__):
                 callback = self.crawler.__CrawlFunc__[callback_label]
                 # 获取代理

@@ -30,9 +30,9 @@ class Scheduler():
         """
         定时获取代理
         """
+        getter = Getter()
         while True:
             print('开始抓取代理')
-            getter = Getter()
             getter.run()
             time.sleep(cycle)
     
