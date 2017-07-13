@@ -1,11 +1,11 @@
 # Redis数据库地址
-REDIS_HOST = 'DataCrawl-Pool.redis.cache.chinacloudapi.cn'
+REDIS_HOST = 'localhost'
 
 # Redis端口
 REDIS_PORT = 6379
 
 # Redis密码，如无填None
-REDIS_PASSWORD = None
+REDIS_PASSWORD = 'foobared'
 
 REDIS_KEY = 'proxies'
 

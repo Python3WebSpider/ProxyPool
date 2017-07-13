@@ -22,6 +22,7 @@ def index():
 def get_proxy():
     """
     Get a proxy
+    :return: 随机代理
     """
     conn = get_conn()
     return conn.random()
@@ -31,6 +32,7 @@ def get_proxy():
 def get_counts():
     """
     Get the count of proxies
+    :return: 代理池总量
     """
     conn = get_conn()
     return str(conn.count())

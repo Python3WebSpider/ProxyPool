@@ -37,7 +37,7 @@ python3 run.py
 
 利用requests获取方法如下
 
-```
+```python
 import requests
 
 PROXY_POOL_URL = 'http://localhost:5000/get'

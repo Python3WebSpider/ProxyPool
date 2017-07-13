@@ -12,12 +12,12 @@ from proxypool.setting import *
 class Tester(object):
     def __init__(self):
         self.redis = RedisClient()
-    
+
     async def test_single_proxy(self, proxy):
         """
         测试单个代理
-        :param proxy: 
-        :return: 
+        :param proxy:
+        :return:
         """
         conn = aiohttp.TCPConnector(verify_ssl=False)
         async with aiohttp.ClientSession(connector=conn) as session:
@@ -28,16 +28,15 @@ class Tester(object):
                 print('正在测试', proxy)
                 async with session.get(TEST_URL, proxy=real_proxy, timeout=15) as response:
                     if response.status in VALID_STATUS_CODES:
-                        self.redis.add(proxy)
+                        self.redis.max(proxy)
                         print('代理可用', proxy)
                     else:
                         self.redis.decrease(proxy)
                         print('请求响应码不合法，IP', proxy)
             except (ClientError, aiohttp.client_exceptions.ClientConnectorError, asyncio.TimeoutError, AttributeError):
-                if self.redis.exists(proxy):
-                    self.redis.decrease(proxy)
+                self.redis.decrease(proxy)
                 print('代理请求失败', proxy)
-    
+
     def run(self):
         """
         测试主函数
