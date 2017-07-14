@@ -26,13 +26,13 @@ class Tester(object):
                     proxy = proxy.decode('utf-8')
                 real_proxy = 'http://' + proxy
                 print('正在测试', proxy)
-                async with session.get(TEST_URL, proxy=real_proxy, timeout=15) as response:
+                async with session.get(TEST_URL, proxy=real_proxy, timeout=15, allow_redirects=False) as response:
                     if response.status in VALID_STATUS_CODES:
                         self.redis.max(proxy)
                         print('代理可用', proxy)
                     else:
                         self.redis.decrease(proxy)
-                        print('请求响应码不合法，IP', proxy)
+                        print('请求响应码不合法 ', response.status, 'IP', proxy)
             except (ClientError, aiohttp.client_exceptions.ClientConnectorError, asyncio.TimeoutError, AttributeError):
                 self.redis.decrease(proxy)
                 print('代理请求失败', proxy)

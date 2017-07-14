@@ -1,5 +1,3 @@
-import requests
-
 from proxypool.db import RedisClient
 
 conn = RedisClient()
@@ -14,10 +12,10 @@ def set(proxy):
 def scan():
     print('请输入代理, 输入exit退出读入')
     while True:
-        account = input()
-        if account == 'exit':
+        proxy = input()
+        if proxy == 'exit':
             break
-        set(account)
+        set(proxy)
 
 
 if __name__ == '__main__':
