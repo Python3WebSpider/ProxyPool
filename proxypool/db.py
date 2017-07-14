@@ -22,7 +22,7 @@ class RedisClient(object):
         :param score: 分数
         :return: 添加结果
         """
-        if self.db.zscore(REDIS_KEY, proxy):
+        if not self.db.zscore(REDIS_KEY, proxy):
             return self.db.zadd(REDIS_KEY, score, proxy)
     
     def random(self):
