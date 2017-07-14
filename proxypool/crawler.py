@@ -24,17 +24,18 @@ class Crawler(object, metaclass=ProxyMetaclass):
             proxies.append(proxy)
         return proxies
 
-    def crawl_daxiang(self):
+    def crawl_xdaili(self):
         """
-        获取大象代理
+        获取讯代理
         :return: 代理
         """
-        url = 'http://vtp.daxiangdaili.com/ip/?tid=555546364094534&num=100'
+        url = 'http://www.xdaili.cn/ipagent/greatRecharge/getGreatIp?spiderId=da289b78fec24f19b392e04106253f2a&orderno=YZ20177140586mTTnd7&returnType=2&count=20'
         html = get_page(url)
         if html:
-            urls = html.split('\n')
-            for url in urls:
-                yield url
+            result = json.loads(html)
+            proxies = result.get('RESULT')
+            for proxy in proxies:
+                yield proxy.get('ip') + ':' + proxy.get('port')
 
     def crawl_kuaidaili(self):
         """

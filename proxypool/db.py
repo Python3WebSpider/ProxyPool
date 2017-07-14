@@ -13,8 +13,8 @@ class RedisClient(object):
         :param port: Redis 端口
         :param password: Redis密码
         """
-        self.db = redis.StrictRedis(host=host, port=port, password=password)
-
+        self.db = redis.StrictRedis(host=host, port=port, password=password, decode_responses=True)
+    
     def add(self, proxy, score=INITIAL_SCORE):
         """
         添加代理，设置分数为最高
@@ -24,7 +24,7 @@ class RedisClient(object):
         """
         if self.db.zscore(REDIS_KEY, proxy):
             return self.db.zadd(REDIS_KEY, score, proxy)
-
+    
     def random(self):
         """
         随机获取有效代理，首先尝试获取最高分数代理，如果不存在，按照排名获取，否则异常
@@ -32,14 +32,14 @@ class RedisClient(object):
         """
         result = self.db.zrangebyscore(REDIS_KEY, MAX_SCORE, MAX_SCORE)
         if len(result):
-            return choice(result).decode('utf-8')
+            return choice(result)
         else:
             result = self.db.zrevrange(REDIS_KEY, 0, 100)
             if len(result):
-                return choice(result).decode('utf-8')
+                return choice(result)
             else:
                 raise PoolEmptyError
-
+    
     def decrease(self, proxy):
         """
         代理值减一分，小于最小值则删除
@@ -53,7 +53,7 @@ class RedisClient(object):
         else:
             print('代理', proxy, '当前分数', score, '移除')
             return self.db.zrem(REDIS_KEY, proxy)
-
+    
     def exists(self, proxy):
         """
         判断是否存在
@@ -61,7 +61,7 @@ class RedisClient(object):
         :return: 是否存在
         """
         return not self.db.zscore(REDIS_KEY, proxy) == None
-
+    
     def max(self, proxy):
         """
         将代理设置为MAX_SCORE
@@ -70,21 +70,20 @@ class RedisClient(object):
         """
         print('代理', proxy, '可用，设置为', MAX_SCORE)
         return self.db.zadd(REDIS_KEY, MAX_SCORE, proxy)
-
+    
     def count(self):
         """
         获取数量
         :return: 数量
         """
         return self.db.zcard(REDIS_KEY)
-
+    
     def all(self):
         """
         获取全部代理
         :return: 全部代理列表
         """
-        all = self.db.zrangebyscore(REDIS_KEY, MIN_SCORE, MAX_SCORE)
-        return [item.decode('utf-8') for item in all]
+        return self.db.zrangebyscore(REDIS_KEY, MIN_SCORE, MAX_SCORE)
 
 
 if __name__ == '__main__':
