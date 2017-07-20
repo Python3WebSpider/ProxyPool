@@ -47,9 +47,8 @@ class Tester(object):
         try:
             proxies = self.redis.all()
             loop = asyncio.get_event_loop()
-            batch_size = 100
-            for i in range(0, len(proxies), batch_size):
-                test_proxies = proxies[i:i + batch_size]
+            for i in range(0, len(proxies), BATCH_TEST_SIZE):
+                test_proxies = proxies[i:i + BATCH_TEST_SIZE]
                 tasks = [self.test_single_proxy(proxy) for proxy in test_proxies]
                 loop.run_until_complete(asyncio.wait(tasks))
                 time.sleep(5)
