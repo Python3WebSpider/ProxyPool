@@ -1,5 +1,6 @@
 import asyncio
 import aiohttp
+import time
 
 try:
     from aiohttp import ClientError
@@ -12,7 +13,7 @@ from proxypool.setting import *
 class Tester(object):
     def __init__(self):
         self.redis = RedisClient()
-
+    
     async def test_single_proxy(self, proxy):
         """
         测试单个代理
@@ -36,7 +37,7 @@ class Tester(object):
             except (ClientError, aiohttp.client_exceptions.ClientConnectorError, asyncio.TimeoutError, AttributeError):
                 self.redis.decrease(proxy)
                 print('代理请求失败', proxy)
-
+    
     def run(self):
         """
         测试主函数
@@ -46,7 +47,11 @@ class Tester(object):
         try:
             proxies = self.redis.all()
             loop = asyncio.get_event_loop()
-            tasks = [self.test_single_proxy(proxy) for proxy in proxies]
-            loop.run_until_complete(asyncio.wait(tasks))
+            batch_size = 100
+            for i in range(0, len(proxies), batch_size):
+                test_proxies = proxies[i:i + batch_size]
+                tasks = [self.test_single_proxy(proxy) for proxy in test_proxies]
+                loop.run_until_complete(asyncio.wait(tasks))
+                time.sleep(5)
         except Exception as e:
             print('测试器发生错误', e.args)
