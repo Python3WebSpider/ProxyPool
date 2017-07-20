@@ -49,7 +49,7 @@ class Crawler(object, metaclass=ProxyMetaclass):
             proxies = result.get('data').get('proxy_list')
             for proxy in proxies:
                 yield proxy
-
+                
     def crawl_daili66(self, page_count=4):
         """
         获取代理66

@@ -25,7 +25,7 @@ TESTER_CYCLE = 20
 GETTER_CYCLE = 20
 
 # 测试API，建议抓哪个网站测哪个
-TEST_URL = 'https://m.weibo.cn/api/container/getIndex?type=uid&value=2145291155&containerid=1076032145291155&page=14'
+TEST_URL = 'http://weixin.sogou.com/weixin?type=2&query=nba'
 
 # API配置
 API_HOST = '0.0.0.0'
@@ -35,3 +35,6 @@ API_PORT = 5555
 TESTER_ENABLED = True
 GETTER_ENABLED = True
 API_ENABLED = True
+
+# 最大批测试量
+BATCH_TEST_SIZE = 100
