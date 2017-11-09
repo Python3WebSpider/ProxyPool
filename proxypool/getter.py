@@ -2,7 +2,7 @@ from proxypool.tester import Tester
 from proxypool.db import RedisClient
 from proxypool.crawler import Crawler
 from proxypool.setting import *
-
+import sys
 
 class Getter():
     def __init__(self):
@@ -25,5 +25,6 @@ class Getter():
                 callback = self.crawler.__CrawlFunc__[callback_label]
                 # 获取代理
                 proxies = self.crawler.get_proxies(callback)
+                sys.stdout.flush()
                 for proxy in proxies:
                     self.redis.add(proxy)

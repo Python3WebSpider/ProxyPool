@@ -1,4 +1,4 @@
-ccimport json
+import json
 import re
 from .utils import get_page
 from pyquery import PyQuery as pq
@@ -25,7 +25,7 @@ class Crawler(object, metaclass=ProxyMetaclass):
         return proxies
         
     def crawl_daxiang(self):
-        url = 'http://vtp.daxiangdaili.com/ip/?tid=559363191592228&num=100&filter=on'
+        url = 'http://vtp.daxiangdaili.com/ip/?tid=559363191592228&num=50&filter=on'
         html = get_page(url)
         if html:
             urls = html.split('\n')

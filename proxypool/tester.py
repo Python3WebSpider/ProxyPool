@@ -1,10 +1,7 @@
 import asyncio
 import aiohttp
 import time
-<<<<<<< HEAD
-=======
-
->>>>>>> dbb6bb89903b1cd158470ac472a5a930f7f0978b
+import sys
 try:
     from aiohttp import ClientError
 except:
@@ -48,12 +45,17 @@ class Tester(object):
         """
         print('测试器开始运行')
         try:
-            proxies = self.redis.all()
-            loop = asyncio.get_event_loop()
-            for i in range(0, len(proxies), BATCH_TEST_SIZE):
-                test_proxies = proxies[i:i + BATCH_TEST_SIZE]
+            count = self.redis.count()
+            print('当前剩余', count, '个代理')
+            for i in range(0, count, BATCH_TEST_SIZE):
+                start = i
+                stop = min(i + BATCH_TEST_SIZE, count)
+                print('正在测试第', start + 1, '-', stop, '个代理')
+                test_proxies = self.redis.batch(start, stop)
+                loop = asyncio.get_event_loop()
                 tasks = [self.test_single_proxy(proxy) for proxy in test_proxies]
                 loop.run_until_complete(asyncio.wait(tasks))
+                sys.stdout.flush()
                 time.sleep(5)
         except Exception as e:
             print('测试器发生错误', e.args)

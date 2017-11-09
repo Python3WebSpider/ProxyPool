@@ -6,6 +6,7 @@ from proxypool.tester import Tester
 from proxypool.db import RedisClient
 from proxypool.setting import *
 
+
 class Scheduler():
     def schedule_tester(self, cycle=TESTER_CYCLE):
         """
