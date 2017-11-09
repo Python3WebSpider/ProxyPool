@@ -1,4 +1,4 @@
-import json
+ccimport json
 import re
 from .utils import get_page
 from pyquery import PyQuery as pq
@@ -31,7 +31,7 @@ class Crawler(object, metaclass=ProxyMetaclass):
             urls = html.split('\n')
             for url in urls:
                 yield url
-
+          
     def crawl_daili66(self, page_count=4):
         """
         获取代理66
