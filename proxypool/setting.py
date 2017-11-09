@@ -1,11 +1,11 @@
 # Redis数据库地址
-REDIS_HOST = 'localhost'
+REDIS_HOST = 'DataCrawl-Pool.redis.cache.chinacloudapi.cn'
 
 # Redis端口
 REDIS_PORT = 6379
 
 # Redis密码，如无填None
-REDIS_PASSWORD = 'foobared'
+REDIS_PASSWORD = 'A0y1VJ6t9B7R5d6id1/2Rk/aDvZXjdwAR/tWylORuwA='
 
 REDIS_KEY = 'proxies'
 
@@ -14,15 +14,15 @@ MAX_SCORE = 100
 MIN_SCORE = 0
 INITIAL_SCORE = 10
 
-VALID_STATUS_CODES = [200]
+VALID_STATUS_CODES = [200, 302]
 
 # 代理池数量界限
-POOL_UPPER_THRESHOLD = 10000
+POOL_UPPER_THRESHOLD = 50000
 
 # 检查周期
 TESTER_CYCLE = 20
 # 获取周期
-GETTER_CYCLE = 20
+GETTER_CYCLE = 300
 
 # 测试API，建议抓哪个网站测哪个
 TEST_URL = 'https://m.weibo.cn/api/container/getIndex?type=uid&value=2145291155&containerid=1076032145291155&page=14'
