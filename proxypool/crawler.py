@@ -193,12 +193,27 @@ class Crawler(object, metaclass=ProxyMetaclass):
             if html:
                 find_tr = re.compile('<tr>(.*?)</tr>', re.S)
                 trs = find_tr.findall(html)
-                for tr in trs:
-                    find_ip = re.compile('<td>(\d+\.\d+\.\d+\.\d+)</td>') 
-                    re_ip_adress = find_ip.findall(tr)
+                for s in range(1, len(trs)):
+                    find_ip = re.compile('<td>(\d+\.\d+\.\d+\.\d+)</td>')
+                    re_ip_adress = find_ip.findall(trs[s])
                     find_port = re.compile('<td>(\d+)</td>')
-                    re_port = find_port.findall(tr)
-                    if re_ip_adress and re_ip_adress:
-                        for adress,port in zip(re_ip_adress, re_port):
-                            adress_port = adress+':'+port
-                            yield adress_port.replace(' ','')
+                    re_port = find_port.findall(trs[s])
+                    for adress,port in zip(re_ip_adress, re_port):
+                        adress_port = adress+':'+port
+                        yield adress_port.replace(' ','')
+    
+    # def crawl_iphai(self):
+    #     start_url = 'http://www.iphai.com/'
+    #     html = get_page(start_url)
+    #     if html:
+    #         find_tr = re.compile('<tr>(.*?)</tr>', re.S)
+    #         trs = find_tr.findall(html)
+    #         print(len(trs))
+    #         for s in range(1, len(trs)):
+    #             find_ip = re.compile('<td>\s+(\d+\.\d+\.\d+\.\d+)\s+</td>', re.S)
+    #             re_ip_adress = find_ip.findall(trs[s])
+    #             find_port = re.compile('<td>\s+(\d+)\s+</td>', re.S)
+    #             re_port = find_port.findall(trs[s])
+    #             for adress,port in zip(re_ip_adress, re_port):
+    #                 adress_port = adress+':'+port
+    #                 yield adress_port.replace(' ','')
