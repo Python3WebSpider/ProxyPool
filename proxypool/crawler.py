@@ -2,7 +2,6 @@ import json
 import re
 from .utils import get_page
 from pyquery import PyQuery as pq
-from bs4 import BeautifulSoup as bsp
 
 
 class ProxyMetaclass(type):
@@ -25,13 +24,13 @@ class Crawler(object, metaclass=ProxyMetaclass):
             proxies.append(proxy)
         return proxies
         
-    def crawl_daxiang(self):
-        url = 'http://vtp.daxiangdaili.com/ip/?tid=559363191592228&num=50&filter=on'
-        html = get_page(url)
-        if html:
-            urls = html.split('\n')
-            for url in urls:
-                yield url
+    # def crawl_daxiang(self):
+    #     url = 'http://vtp.daxiangdaili.com/ip/?tid=559363191592228&num=50&filter=on'
+    #     html = get_page(url)
+    #     if html:
+    #         urls = html.split('\n')
+    #         for url in urls:
+    #             yield url
           
     def crawl_daili66(self, page_count=4):
         """
@@ -198,7 +197,6 @@ class Crawler(object, metaclass=ProxyMetaclass):
         if html:
             find_tr = re.compile('<tr>(.*?)</tr>', re.S)
             trs = find_tr.findall(html)
-            print(len(trs))
             for s in range(1, len(trs)):
                 find_ip = re.compile('<td>\s+(\d+\.\d+\.\d+\.\d+)\s+</td>', re.S)
                 re_ip_address = find_ip.findall(trs[s])
@@ -233,19 +231,11 @@ class Crawler(object, metaclass=ProxyMetaclass):
         }
         html = get_page(start_url, options=headers)
         if html:
-            # ip_address = re.compile('<span><li>(\d+\.\d+\.\d+\.\d+)</li>.*?<li class=\"port HCAAA\">(\d.*?)</li>', re.S)
-            # re_ip_address = ip_address.findall(html)
-            # for address, port in re_ip_address:
-            #     result = address + ':' + port
-            #     yield result.replace(' ', '')
-            soup = bsp(html, 'lxml')
-            ul_l2s = soup.find_all('ul', class_='l2')
-            for l2 in ul_l2s:
-                address = l2.span.li.text
-                port = l2.find('li', class_='port').text
-                print(address, port)
-                result = address.strip() + ':' + port.strip()
-                yield result
+            ip_address = re.compile('<span><li>(\d+\.\d+\.\d+\.\d+)</li>.*?<li class=\"port.*?>(\d+)</li>', re.S)
+            re_ip_address = ip_address.findall(html)
+            for address, port in re_ip_address:
+                result = address + ':' + port
+                yield result.replace(' ', '')
 
 
             
