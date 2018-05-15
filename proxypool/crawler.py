@@ -19,6 +19,7 @@ class ProxyMetaclass(type):
 class Crawler(object, metaclass=ProxyMetaclass):
     def get_proxies(self, callback):
         proxies = []
+        # 这里执行的获取的网站爬取的结果
         for proxy in eval("self.{}()".format(callback)):
             print('成功获取到代理', proxy)
             proxies.append(proxy)

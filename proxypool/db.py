@@ -26,6 +26,7 @@ class RedisClient(object):
         if not re.match('\d+\.\d+\.\d+\.\d+\:\d+', proxy):
             print('代理不符合规范', proxy, '丢弃')
             return
+        # redisOps.ZADD(key, score1, member1)
         if not self.db.zscore(REDIS_KEY, proxy):
             return self.db.zadd(REDIS_KEY, score, proxy)
     
