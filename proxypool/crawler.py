@@ -1,5 +1,8 @@
-import json
 import re
+import os
+import logging
+import json
+
 from .utils import get_page
 from pyquery import PyQuery as pq
 
@@ -24,15 +27,8 @@ class Crawler(object, metaclass=ProxyMetaclass):
             print('成功获取到代理', proxy)
             proxies.append(proxy)
         return proxies
-        
-    # def crawl_daxiang(self):
-    #     url = 'http://vtp.daxiangdaili.com/ip/?tid=559363191592228&num=50&filter=on'
-    #     html = get_page(url)
-    #     if html:
-    #         urls = html.split('\n')
-    #         for url in urls:
-    #             yield url
-          
+    
+    
     def crawl_daili66(self, page_count=4):
         """
         获取代理66
@@ -52,45 +48,25 @@ class Crawler(object, metaclass=ProxyMetaclass):
                     port = tr.find('td:nth-child(2)').text()
                     yield ':'.join([ip, port])
 
-    def crawl_proxy360(self):
-        """
-        获取Proxy360
-        :return: 代理
-        """
-        start_url = 'http://www.proxy360.cn/Region/China'
-        print('Crawling', start_url)
-        html = get_page(start_url)
-        if html:
-            doc = pq(html)
-            lines = doc('div[name="list_proxy_ip"]').items()
-            for line in lines:
-                ip = line.find('.tbBottomLine:nth-child(1)').text()
-                port = line.find('.tbBottomLine:nth-child(2)').text()
-                yield ':'.join([ip, port])
-
-    def crawl_goubanjia(self):
-        """
-        获取Goubanjia
-        :return: 代理
-        """
-        start_url = 'http://www.goubanjia.com/free/gngn/index.shtml'
-        html = get_page(start_url)
-        if html:
-            doc = pq(html)
-            tds = doc('td.ip').items()
-            for td in tds:
-                td.find('p').remove()
-                yield td.text().replace(' ', '')
 
     def crawl_ip181(self):
+        """
+        接口变更直接返回json串（ip，port）,不需要对网页进行解析
+        :return: 代理
+        """
         start_url = 'http://www.ip181.com/'
         html = get_page(start_url)
-        ip_address = re.compile('<tr.*?>\s*<td>(.*?)</td>\s*<td>(.*?)</td>')
-        # \s* 匹配空格，起到换行作用
-        re_ip_address = ip_address.findall(html)
-        for address,port in re_ip_address:
-            result = address + ':' + port
-            yield result.replace(' ', '')
+        if html:
+            response_json = json.loads(html, encoding = "utf-8")
+            if response_json['RESULT']:
+                ip_port_info_list = response_json['RESULT']
+                for ip_port_info in ip_port_info_list:
+                    ip = ip_port_info["ip"]
+                    port = ip_port_info["port"]
+                    position = ip_port_info["position"]
+                    result = ip + ":" + port
+                    yield result.replace(' ','')
+
 
 
     def crawl_ip3366(self):
@@ -102,18 +78,6 @@ class Crawler(object, metaclass=ProxyMetaclass):
             re_ip_address = ip_address.findall(html)
             for address, port in re_ip_address:
                 result = address+':'+ port
-                yield result.replace(' ', '')
-
-
-    def crawl_kxdaili(self):
-        for i in range(1, 11):
-            start_url = 'http://www.kxdaili.com/ipList/{}.html#ip'.format(i)
-            html = get_page(start_url)
-            ip_address = re.compile('<tr.*?>\s*<td>(.*?)</td>\s*<td>(.*?)</td>')
-            # \s* 匹配空格，起到换行作用
-            re_ip_address = ip_address.findall(html)
-            for address, port in re_ip_address:
-                result = address + ':' + port
                 yield result.replace(' ', '')
 
 
@@ -239,4 +203,17 @@ class Crawler(object, metaclass=ProxyMetaclass):
                 yield result.replace(' ', '')
 
 
-            
+if __name__ == "__main__":
+    logging.basicConfig(format="%(asctime)s %(name)s %(levelname)s %(message)s",
+                      filename='crawer.log',
+                      level=logging.INFO)
+    crawler = Crawler()
+    for callback_label in range(crawler.__CrawlFuncCount__):
+        callback = crawler.__CrawlFunc__[callback_label]
+        # 获取代理
+        proxies = crawler.get_proxies(callback)
+        logging.info("collback:【{}】 proxies:{}".format(callback, proxies))
+        '''
+        for proxy in proxies:
+            print(proxy)
+        '''
