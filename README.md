@@ -50,3 +50,7 @@ def get_proxy():
     except ConnectionError:
         return None
 ```
+
+## ChangeLog
+
+兼容redis-py3.x
