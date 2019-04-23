@@ -50,3 +50,10 @@ def get_proxy():
     except ConnectionError:
         return None
 ```
+
+## Docker Build
+
+```bash
+docker build -t <yourname>/proxypool:latest .
+docker run --rm -it -p 5555:5555 <yourname>/proxypool:latest
+```
