@@ -26,6 +26,15 @@ PASSWORD为Redis密码，如果为空，则设置为None
 pip3 install -r requirements.txt
 ```
 
+##### 使用`pipenv`安装依赖
+
+```
+pipenv install
+# 关于依赖
+#     * 由于`falsk`1.0以上版本的启动方式发生改变, 如果你不存在特殊需求, 推荐你使用`0.11.1`版本.
+#     * 其他依赖可以按需升级的最新版本
+```
+
 #### 打开代理池和API
 
 ```
