@@ -1,4 +1,4 @@
-aiohttp>=1.3.3
+aiohttp==3.5.4
 flask==0.11.1
 redis==2.10.5
 requests==2.13.0
