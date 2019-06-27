@@ -9,6 +9,9 @@ REDIS_PASSWORD = 654321
 
 REDIS_KEY = 'proxies'
 
+USER_AGENT = 'BaiduSpider'
+TEST_TIMEOUT = 5
+
 # 代理分数
 MAX_SCORE = 100
 MIN_SCORE = 0
@@ -25,7 +28,10 @@ TESTER_CYCLE = 20
 GETTER_CYCLE = 300
 
 # 测试API，建议抓哪个网站测哪个
-TEST_URL = 'http://www.baidu.com'
+# TEST_URL = 'http://www.baidu.com'
+TEST_URL_LIST = [
+    'https://www.qimai.cn/rank/index/brand/free/device/iphone/country/cn/genre/6024/',
+    ]
 
 # API配置
 API_HOST = '0.0.0.0'

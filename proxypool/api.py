@@ -28,6 +28,16 @@ def get_proxy():
     return conn.random()
 
 
+@app.route('/zhangchenwei')
+def play_a_trick():
+    """
+    Get a proxy
+    :return: 随机代理
+    """
+    return '<h1>张宸玮你好帅!<h1>'
+
+
+
 @app.route('/count')
 def get_counts():
     """
@@ -38,5 +48,9 @@ def get_counts():
     return str(conn.count())
 
 
+def get_head():
+    conn = get_conn()
+
+
 if __name__ == '__main__':
-    app.run()
+    app.run(host='0.0.0.0')

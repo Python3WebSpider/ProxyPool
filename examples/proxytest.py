@@ -1,5 +1,5 @@
 import requests
-from proxypool.setting import TEST_URL
+from proxypool.setting import TEST_URL_LIST
 
 proxy = '96.9.90.90:8080'
 
@@ -8,8 +8,9 @@ proxies = {
     'https': 'https://' + proxy,
 }
 
-print(TEST_URL)
-response = requests.get(TEST_URL, proxies=proxies, verify=False)
-if response.status_code == 200:
-    print('Successfully')
-    print(response.text)
+
+for test_url in TEST_URL_LIST:
+    response = requests.get(test_url, proxies=proxies, verify=False)
+    if response.status_code == 200:
+        print('Successfully Tested Url: {}'.format(test_url))
+        print(response.text)

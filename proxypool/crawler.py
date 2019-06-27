@@ -2,6 +2,7 @@ import json
 import re
 from .utils import get_page
 from pyquery import PyQuery as pq
+import logging
 
 
 class ProxyMetaclass(type):
@@ -20,7 +21,8 @@ class Crawler(object, metaclass=ProxyMetaclass):
     def get_proxies(self, callback):
         proxies = []
         for proxy in eval("self.{}()".format(callback)):
-            print('成功获取到代理', proxy)
+            logging.info({'Proxy Crawled': proxy})
+            # print('成功获取到代理', proxy)
             proxies.append(proxy)
         return proxies
        
@@ -33,7 +35,8 @@ class Crawler(object, metaclass=ProxyMetaclass):
         start_url = 'http://www.66ip.cn/{}.html'
         urls = [start_url.format(page) for page in range(1, page_count + 1)]
         for url in urls:
-            print('Crawling', url)
+            logging.debug({'Crawling': url})
+            # print('Crawling', url)
             html = get_page(url)
             if html:
                 doc = pq(html)
@@ -102,7 +105,7 @@ class Crawler(object, metaclass=ProxyMetaclass):
                     re_ip_address = find_ip.findall(trs[s])
                     find_port = re.compile('<td>(\d+)</td>')
                     re_port = find_port.findall(trs[s])
-                    for address,port in zip(re_ip_address, re_port):
+                    for address, port in zip(re_ip_address, re_port):
                         address_port = address+':'+port
                         yield address_port.replace(' ','')
     
@@ -142,6 +145,3 @@ class Crawler(object, metaclass=ProxyMetaclass):
             for address, port in re_ip_address:
                 result = address + ':' + port
                 yield result.replace(' ', '')
-
-
-            

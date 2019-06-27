@@ -4,6 +4,7 @@ from proxypool.setting import REDIS_HOST, REDIS_PORT, REDIS_PASSWORD, REDIS_KEY
 from proxypool.setting import MAX_SCORE, MIN_SCORE, INITIAL_SCORE
 from random import choice
 import re
+import logging
 
 
 class RedisClient(object):
@@ -53,10 +54,12 @@ class RedisClient(object):
         """
         score = self.db.zscore(REDIS_KEY, proxy)
         if score and score > MIN_SCORE:
-            print('代理', proxy, '当前分数', score, '减1')
-            return self.db.zincrby(REDIS_KEY, proxy, -1)
+            logging.debug({'代理': proxy, '当前分数': score, '操作': '-1'})
+            # print('代理', proxy, '当前分数', score, '减1')
+            return self.db.zincrby(REDIS_KEY, -1, proxy)
         else:
-            print('代理', proxy, '当前分数', score, '移除')
+            logging.debug({'代理': proxy, '当前分数': score, '操作': 'REMOVE'})
+            # print('代理', proxy, '当前分数', score, '移除')
             return self.db.zrem(REDIS_KEY, proxy)
     
     def exists(self, proxy):
@@ -73,8 +76,9 @@ class RedisClient(object):
         :param proxy: 代理
         :return: 设置结果
         """
-        print('代理', proxy, '可用，设置为', MAX_SCORE)
-        return self.db.zadd(REDIS_KEY, MAX_SCORE, proxy)
+        logging.info({'代理': proxy, '可用': True, '分数': MAX_SCORE})
+        # print('代理', proxy, '可用，设置为', MAX_SCORE)
+        return self.db.zadd(REDIS_KEY, {proxy: MAX_SCORE})
     
     def count(self):
         """
@@ -103,4 +107,4 @@ class RedisClient(object):
 if __name__ == '__main__':
     conn = RedisClient()
     result = conn.batch(680, 688)
-    print(result)
+    logging.info({'result': result})
