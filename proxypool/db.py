@@ -23,11 +23,12 @@ class RedisClient(object):
         :param score: 分数
         :return: 添加结果
         """
+
         if not re.match('\d+\.\d+\.\d+\.\d+\:\d+', proxy):
             print('代理不符合规范', proxy, '丢弃')
             return
         if not self.db.zscore(REDIS_KEY, proxy):
-            return self.db.zadd(REDIS_KEY, {proxy: score})
+            return self.db.zadd(REDIS_KEY,  {proxy: score})
     
     def random(self):
         """
