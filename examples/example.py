@@ -24,6 +24,6 @@ def main():
     html = crawl('http://docs.jinkan.org/docs/flask/', proxy)
     print(html)
 
+
 if __name__ == '__main__':
     main()
-

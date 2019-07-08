@@ -3,3 +3,4 @@ Flask>=0.11.1
 redis>=2.10.5
 requests>=2.13.0
 pyquery>=1.2.17
+bs4>=0.0.1
