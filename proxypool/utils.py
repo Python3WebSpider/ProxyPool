@@ -1,27 +1,50 @@
 import requests
 from requests.exceptions import ConnectionError
+import re
 
-base_headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.71 Safari/537.36',
-    'Accept-Encoding': 'gzip, deflate, sdch',
-    'Accept-Language': 'en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7'
-}
+from proxypool.proxy import Proxy
 
 
-def get_page(url, options={}):
+def parse_redis_connection_string(connection_string):
     """
-    抓取代理
-    :param url:
-    :param options:
+    parse a redis connection string, for example:
+    redis://[password]@host:port
+    rediss://[password]@host:port
+    :param connection_string:
     :return:
     """
-    headers = dict(base_headers, **options)
-    print('正在抓取', url)
-    try:
-        response = requests.get(url, headers=headers)
-        print('抓取成功', url, response.status_code)
-        if response.status_code == 200:
-            return response.text
-    except ConnectionError:
-        print('抓取失败', url)
+    result = re.match('rediss?:\/\/(.*?)@(.*?):(\d+)', connection_string)
+    return result.group(2), int(result.group(3)), (result.group(1) or None) if result \
+        else ('localhost', 6379, None)
+
+
+def is_valid_proxy(data):
+    """
+    is data is valid proxy format
+    :param data:
+    :return:
+    """
+    return re.match('\d+\.\d+\.\d+\.\d+\:\d+', data)
+
+
+def convert_proxy_or_proxies(data):
+    """
+    convert list of str to valid proxies or proxy
+    :param data:
+    :return:
+    """
+    print(data)
+    if not data:
         return None
+    if isinstance(data, list):
+        result = []
+        for item in data:
+            # skip invalid item
+            item = item.strip()
+            if not is_valid_proxy(item): continue
+            host, port = item.split(':')
+            result.append(Proxy(host=host, port=int(port)))
+        return result
+    if isinstance(data, str) and is_valid_proxy(data):
+        host, port = data.split(':')
+        return Proxy(host=host, port=int(port))

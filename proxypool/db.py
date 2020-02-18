@@ -1,111 +1,131 @@
 import redis
 from proxypool.error import PoolEmptyError
+from proxypool.proxy import Proxy
 from proxypool.setting import REDIS_HOST, REDIS_PORT, REDIS_PASSWORD, REDIS_KEY
-from proxypool.setting import MAX_SCORE, MIN_SCORE, INITIAL_SCORE
+from proxypool.setting import PROXY_SCORE_MAX, PROXY_SCORE_MIN, PROXY_SCORE_INIT
 from random import choice
-import re
+from typing import List
+from loguru import logger
+
+from proxypool.utils import is_valid_proxy, convert_proxy_or_proxies
+
+
+REDIS_CLIENT_VERSION = redis.__version__
+IS_REDIS_VERSION_2 = REDIS_CLIENT_VERSION.startswith('2.')
 
 
 class RedisClient(object):
-    def __init__(self, host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWORD):
-        """
-        初始化
-        :param host: Redis 地址
-        :param port: Redis 端口
-        :param password: Redis密码
-        """
-        self.db = redis.StrictRedis(host=host, port=port, password=password, decode_responses=True)
+    """
+    redis connection client of proxypool
+    """
     
-    def add(self, proxy, score=INITIAL_SCORE):
+    def __init__(self, host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWORD, **kwargs):
         """
-        添加代理，设置分数为最高
-        :param proxy: 代理
-        :param score: 分数
-        :return: 添加结果
+        init redis client
+        :param host: redis host
+        :param port: redis port
+        :param password: redis password
         """
-        if not re.match('\d+\.\d+\.\d+\.\d+\:\d+', proxy):
-            print('代理不符合规范', proxy, '丢弃')
+        self.db = redis.StrictRedis(host=host, port=port, password=password, decode_responses=True, **kwargs)
+    
+    def add(self, proxy: Proxy, score=PROXY_SCORE_INIT) -> int:
+        """
+        add proxy and set it to init score
+        :param proxy: proxy, ip:port, like 8.8.8.8:88
+        :param score: int score
+        :return: result
+        """
+        if not is_valid_proxy(f'{proxy.host}:{proxy.port}'):
+            logger.info(f'invalid proxy {proxy}, throw it')
             return
         if not self.db.zscore(REDIS_KEY, proxy):
-            #return self.db.zadd(REDIS_KEY, score, proxy)
-            #更新为redis3.0+版本，解决redis3.0更新后的报错，如用旧版本还原上方代码
-            return self.db.zadd(REDIS_KEY, {proxy:score})
+            if IS_REDIS_VERSION_2:
+                return self.db.zadd(REDIS_KEY, score, proxy)
+            return self.db.zadd(REDIS_KEY, {proxy: score})
     
-    def random(self):
+    def random(self) -> Proxy:
         """
-        随机获取有效代理，首先尝试获取最高分数代理，如果不存在，按照排名获取，否则异常
-        :return: 随机代理
+        get random proxy
+        firstly try to get proxy with max score
+        if not exists, try to get proxy by rank
+        if not exists, raise error
+        :return: proxy, like 8.8.8.8:8
         """
-        result = self.db.zrangebyscore(REDIS_KEY, MAX_SCORE, MAX_SCORE)
-        if len(result):
-            return choice(result)
-        else:
-            result = self.db.zrevrange(REDIS_KEY, 0, 100)
-            if len(result):
-                return choice(result)
-            else:
-                raise PoolEmptyError
+        # try to get proxy with max score
+        proxies = self.db.zrangebyscore(REDIS_KEY, PROXY_SCORE_MAX, PROXY_SCORE_MAX)
+        if len(proxies):
+            return convert_proxy_or_proxies(choice(proxies))
+        # else get proxy by rank
+        proxies = self.db.zrevrange(REDIS_KEY, PROXY_SCORE_MIN, PROXY_SCORE_MAX)
+        if len(proxies):
+            return convert_proxy_or_proxies(choice(proxies))
+        # else raise error
+        raise PoolEmptyError
     
-    def decrease(self, proxy):
+    def decrease(self, proxy: Proxy) -> int:
         """
-        代理值减一分，小于最小值则删除
-        :param proxy: 代理
-        :return: 修改后的代理分数
+        decrease score of proxy, if small than PROXY_SCORE_MIN, delete it
+        :param proxy: proxy
+        :return: new score
         """
-        score = self.db.zscore(REDIS_KEY, proxy)
-        if score and score > MIN_SCORE:
-            print('代理', proxy, '当前分数', score, '减1')
-            #return self.db.zincrby(REDIS_KEY, proxy, -1)
-            #更新为redis3.0+版本，解决redis3.0更新后的报错，如用旧版本还原上方代码
-            return self.db.zincrby(REDIS_KEY, -1, proxy)
+        score = self.db.zscore(REDIS_KEY, proxy.string())
+        # current score is larger than PROXY_SCORE_MIN
+        if score and score > PROXY_SCORE_MIN:
+            logger.info(f'{proxy.string()} current score {score}, decrease 1')
+            if IS_REDIS_VERSION_2:
+                return self.db.zincrby(REDIS_KEY, proxy.string(), -1)
+            return self.db.zincrby(REDIS_KEY, -1, proxy.string())
+        # otherwise delete proxy
         else:
-            print('代理', proxy, '当前分数', score, '移除')
+            logger.info(f'{proxy.string()} current score {score}, remove')
             return self.db.zrem(REDIS_KEY, proxy)
     
-    def exists(self, proxy):
+    def exists(self, proxy: Proxy) -> bool:
         """
-        判断是否存在
-        :param proxy: 代理
-        :return: 是否存在
+        if proxy exists
+        :param proxy: proxy
+        :return: if exists, bool
         """
-        return not self.db.zscore(REDIS_KEY, proxy) == None
+        return not self.db.zscore(REDIS_KEY, proxy.string()) == None
     
-    def max(self, proxy):
+    def max(self, proxy: Proxy) -> int:
         """
-        将代理设置为MAX_SCORE
-        :param proxy: 代理
-        :return: 设置结果
+        set proxy to max score
+        :param proxy: proxy
+        :return: new score
         """
-        print('代理', proxy, '可用，设置为', MAX_SCORE)
-        #return self.db.zadd(REDIS_KEY, MAX_SCORE, proxy)
-        #更新为redis3.0+版本，解决redis3.0更新后的报错，如用旧版本还原上方代码
-        return self.db.zadd(REDIS_KEY, {proxy:MAX_SCORE})
+        logger.info(f'{proxy.string()} is valid, set to {PROXY_SCORE_MAX}')
+        if IS_REDIS_VERSION_2:
+            return self.db.zadd(REDIS_KEY, PROXY_SCORE_MAX, proxy.string())
+        return self.db.zadd(REDIS_KEY, {proxy.string(): PROXY_SCORE_MAX})
     
-    def count(self):
+    def count(self) -> int:
         """
-        获取数量
-        :return: 数量
+        get count of proxies
+        :return: count, int
         """
         return self.db.zcard(REDIS_KEY)
     
-    def all(self):
+    def all(self) -> List[Proxy]:
         """
-        获取全部代理
-        :return: 全部代理列表
+        get all proxies
+        :return: list of proxies
         """
-        return self.db.zrangebyscore(REDIS_KEY, MIN_SCORE, MAX_SCORE)
+        return convert_proxy_or_proxies(self.db.zrangebyscore(REDIS_KEY, PROXY_SCORE_MIN, PROXY_SCORE_MAX))
     
-    def batch(self, start, stop):
+    def batch(self, start, end) -> List[Proxy]:
         """
-        批量获取
-        :param start: 开始索引
-        :param stop: 结束索引
-        :return: 代理列表
+        get batch of proxies
+        :param start: start index
+        :param end: end index
+        :return: list of proxies
         """
-        return self.db.zrevrange(REDIS_KEY, start, stop - 1)
+        return convert_proxy_or_proxies(self.db.zrevrange(REDIS_KEY, start, end - 1))
 
 
 if __name__ == '__main__':
     conn = RedisClient()
-    result = conn.batch(680, 688)
+    result = conn.batch(1, 10)
     print(result)
+    result = conn.random()
+    print(result, type(result))

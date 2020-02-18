@@ -1,40 +1,62 @@
-# Redis数据库地址
-REDIS_HOST = '127.0.0.1'
+from environs import Env
+from proxypool.utils import parse_redis_connection_string
 
-# Redis端口
-REDIS_PORT = 6379
 
-# Redis密码，如无填None
-REDIS_PASSWORD = None
+env = Env()
+env.read_env()
 
-REDIS_KEY = 'proxies'
+# definition of environments
+DEV_MODE, TEST_MODE, PROD_MODE = 'dev', 'test', 'prod'
+APP_ENV = env.str('APP_ENV', DEV_MODE).lower()
+APP_DEBUG = env.bool('APP_DEBUG', True if APP_ENV == DEV_MODE else False)
+APP_DEV = IS_DEV = APP_ENV == DEV_MODE
+APP_PROD = IS_PROD = APP_DEV == PROD_MODE
+APP_TEST = IS_TEST = APP_ENV = TEST_MODE
 
-# 代理分数
-MAX_SCORE = 100
-MIN_SCORE = 0
-INITIAL_SCORE = 10
+# redis host
+REDIS_HOST = env.str('REDIS_HOST', '127.0.0.1')
+# redis port
+REDIS_PORT = env.int('REDIS_PORT', 6379)
+# redis password, if no password, set it to None
+REDIS_PASSWORD = env.str('REDIS_PASSWORD', None)
+# redis connection string, like redis://[password]@host:port or rediss://[password]@host:port
+# REDIS_CONNECTION_STRING = env.str('REDIS_CONNECTION_STRING', None)
 
-VALID_STATUS_CODES = [200, 302]
+# if REDIS_CONNECTION_STRING:
+#     REDIS_HOST, REDIS_PORT, REDIS_PASSWORD = parse_redis_connection_string(REDIS_CONNECTION_STRING)
 
-# 代理池数量界限
-POOL_UPPER_THRESHOLD = 50000
+# redis hash table key name
+REDIS_KEY = env.str('REDIS_HOST', 'proxies')
 
-# 检查周期
-TESTER_CYCLE = 20
-# 获取周期
-GETTER_CYCLE = 300
+# definition of proxy scores
+PROXY_SCORE_MAX = 100
+PROXY_SCORE_MIN = 0
+PROXY_SCORE_INIT = 10
 
-# 测试API，建议抓哪个网站测哪个
-TEST_URL = 'http://www.baidu.com'
+# definition of proxy number
+PROXY_NUMBER_MAX = 50000
+PROXY_NUMBER_MIN = 0
 
-# API配置
-API_HOST = '0.0.0.0'
-API_PORT = 5555
+# definition of tester cycle, it will test every CYCLE_TESTER second
+CYCLE_TESTER = env.int('CYCLE_TESTER', 20)
+# definition of getter cycle, it will get proxy every CYCLE_GETTER second
+CYCLE_GETTER = env.int('CYCLE_GETTER', 100)
 
-# 开关
-TESTER_ENABLED = True
-GETTER_ENABLED = True
-API_ENABLED = True
+# definition of tester
+TEST_URL = env.str('TEST_URL', 'http://www.baidu.com')
+TEST_TIMEOUT = env.int('TEST_TIMEOUT', 10)
+TEST_BATCH = env.int('TEST_BATCH', 20)
+# TEST_HEADERS = env.json('TEST_HEADERS', {
+#     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.71 Safari/537.36',
+# })
+TEST_VALID_STATUS = env.list('TEST_VALID_STATUS', [200, 206, 302])
 
-# 最大批测试量
-BATCH_TEST_SIZE = 10
+# definition of api
+API_HOST = env.str('API_HOST', '0.0.0.0')
+API_PORT = env.int('API_PORT', 5555)
+API_THREADED = env.bool('API_THREADED', True)
+
+# flags of enable
+ENABLE_TESTER = env.bool('ENABLE_TESTER', True)
+ENABLE_GETTER = env.bool('ENABLE_GETTER', True)
+ENABLE_API = env.bool('ENABLE_API', True)

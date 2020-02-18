@@ -1,30 +1,44 @@
-from proxypool.tester import Tester
 from proxypool.db import RedisClient
-from proxypool.crawler import Crawler
-from proxypool.setting import *
-import sys
+from proxypool.setting import PROXY_NUMBER_MAX
+from proxypool.crawlers import __all__ as crawlers_cls
+
 
 class Getter():
-    def __init__(self):
-        self.redis = RedisClient()
-        self.crawler = Crawler()
+    """
+    getter of proxypool
+    """
     
-    def is_over_threshold(self):
+    
+    def __init__(self):
         """
-        判断是否达到了代理池限制
+        init db and crawlers
         """
-        if self.redis.count() >= POOL_UPPER_THRESHOLD:
-            return True
-        else:
-            return False
+        self.redis = RedisClient()
+        self.crawlers_cls = crawlers_cls
+        self.crawlers = [crawler_cls() for crawler_cls in self.crawlers_cls]
+    
+    
+    def is_full(self):
+        """
+        if proxypool if full
+        return: bool
+        """
+        return self.redis.count() >= PROXY_NUMBER_MAX
+    
     
     def run(self):
-        print('获取器开始执行')
-        if not self.is_over_threshold():
-            for callback_label in range(self.crawler.__CrawlFuncCount__):
-                callback = self.crawler.__CrawlFunc__[callback_label]
-                # 获取代理
-                proxies = self.crawler.get_proxies(callback)
-                sys.stdout.flush()
-                for proxy in proxies:
-                    self.redis.add(proxy)
+        """
+        run crawlers to get proxy
+        :return:
+        """
+        if self.is_full():
+            return
+        for crawler in self.crawlers:
+            for proxy in crawler.crawl():
+                print('proxy', proxy)
+                self.redis.add(proxy)
+
+
+if __name__ == '__main__':
+    getter = Getter()
+    getter.run()
