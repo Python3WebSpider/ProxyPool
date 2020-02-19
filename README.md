@@ -311,6 +311,6 @@ class Daili66Crawler(BaseCrawler):
 kubectl apply -f deployment.yml
 ```
 
-## License
+## LICENSE
 
 MIT
