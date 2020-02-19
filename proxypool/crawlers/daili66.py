@@ -6,12 +6,12 @@ from proxypool.crawlers.base import BaseCrawler
 BASE_URL = 'http://www.664ip.cn/{page}.html'
 MAX_PAGE = 5
 
+
 class Daili66Crawler(BaseCrawler):
     """
     daili66 crawler, http://www.66ip.cn/1.html
     """
     urls = [BASE_URL.format(page=page) for page in range(1, MAX_PAGE + 1)]
-    
     
     def parse(self, html):
         """
@@ -24,6 +24,7 @@ class Daili66Crawler(BaseCrawler):
             host = tr.find('td:nth-child(1)').text()
             port = int(tr.find('td:nth-child(2)').text())
             yield Proxy(host=host, port=port)
+
 
 if __name__ == '__main__':
     crawler = Daili66Crawler()

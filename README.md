@@ -18,7 +18,7 @@
 
 ### Docker
 
-如果使用 Docker，则需要安装了如下环境：
+如果使用 Docker，则需要安装如下环境：
 
 * Docker
 * Docker-Compose
@@ -27,7 +27,7 @@
 
 常规方式要求有 Python 环境、Redis 环境，具体要求如下：
 
-* Python: >=3.6
+* Python>=3.6
 * Redis
 
 ## Docker 运行
@@ -89,7 +89,10 @@ export REDIS_CONNECTION_STRING='redis://[password]@host:port'
 
 ### 安装依赖包
 
-这里强烈推荐使用 Conda 或 VirtualEnv 创建虚拟环境，然后 pip 安装依赖即可：
+这里强烈推荐使用 [Conda](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-with-commands) 
+或 [virtualenv](https://virtualenv.pypa.io/en/latest/user_guide.html) 创建虚拟环境，Python 版本不低于 3.6。
+
+然后 pip 安装依赖即可：
 
 ```shell script
 pip3 install -r requirements.txt
@@ -121,7 +124,7 @@ python3 run.py --processor server
 
 成功运行之后可以通过 [http://localhost:5555/random](http://localhost:5555/random) 获取一个随机可用代理。
 
-可以用程序对接实现，简单的示例展示了获取代理并爬取网页的过程：
+可以用程序对接实现，下面的示例展示了获取代理并爬取网页的过程：
 
 ```python
 import requests
@@ -233,7 +236,7 @@ export REDIS_KEY=proxies:weibo
 
 如果使用 Docker-Compose 启动代理池，则需要在 docker-compose.yml 文件里面指定环境变量，如：
 
-```shell script
+```yaml
 version: '3'
 services:
   redis:
@@ -256,9 +259,9 @@ services:
       REDIS_KEY: proxies:weibo
 ```
 
-## 扩展代理
+## 扩展代理爬虫
 
-代理的爬虫均放置在 proxypool/crawlers 文件夹下，目前对接了有限的爬虫。
+代理的爬虫均放置在 proxypool/crawlers 文件夹下，目前对接了有限几个代理的爬虫。
 
 若扩展一个爬虫，只需要在 crawlers 文件夹下新建一个 Python 文件声明一个 Class 即可。
 
