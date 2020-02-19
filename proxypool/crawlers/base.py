@@ -14,7 +14,7 @@ class BaseCrawler(object):
                 return response.text
         except requests.ConnectionError:
             return
-        
+    
     @logger.catch
     def crawl(self):
         """
@@ -24,4 +24,5 @@ class BaseCrawler(object):
             logger.info(f'fetching {url}')
             html = self.fetch(url)
             for proxy in self.parse(html):
+                logger.info(f'fetched proxy {proxy.string()}')
                 yield proxy

@@ -1,5 +1,5 @@
 from proxypool.crawlers.base import BaseCrawler
-from proxypool.proxy import Proxy
+from proxypool.schemas.proxy import Proxy
 import re
 
 

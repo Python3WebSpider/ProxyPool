@@ -1,9 +1,9 @@
 from pyquery import PyQuery as pq
-from proxypool.proxy import Proxy
+from proxypool.schemas.proxy import Proxy
 from proxypool.crawlers.base import BaseCrawler
 
 
-BASE_URL = 'http://www.636ip.cn/{page}.html'
+BASE_URL = 'http://www.664ip.cn/{page}.html'
 MAX_PAGE = 5
 
 class Daili66Crawler(BaseCrawler):

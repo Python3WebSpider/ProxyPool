@@ -1,13 +1,12 @@
 import redis
-from proxypool.error import PoolEmptyError
-from proxypool.proxy import Proxy
-from proxypool.setting import REDIS_HOST, REDIS_PORT, REDIS_PASSWORD, REDIS_KEY
-from proxypool.setting import PROXY_SCORE_MAX, PROXY_SCORE_MIN, PROXY_SCORE_INIT
+from proxypool.exceptions import PoolEmptyException
+from proxypool.schemas.proxy import Proxy
+from proxypool.setting import REDIS_HOST, REDIS_PORT, REDIS_PASSWORD, REDIS_KEY, PROXY_SCORE_MAX, PROXY_SCORE_MIN, \
+    PROXY_SCORE_INIT
 from random import choice
 from typing import List
 from loguru import logger
-
-from proxypool.utils import is_valid_proxy, convert_proxy_or_proxies
+from proxypool.utils.proxy import is_valid_proxy, convert_proxy_or_proxies
 
 
 REDIS_CLIENT_VERSION = redis.__version__
@@ -38,7 +37,7 @@ class RedisClient(object):
         if not is_valid_proxy(f'{proxy.host}:{proxy.port}'):
             logger.info(f'invalid proxy {proxy}, throw it')
             return
-        if not self.db.zscore(REDIS_KEY, proxy):
+        if not self.exists(proxy):
             if IS_REDIS_VERSION_2:
                 return self.db.zadd(REDIS_KEY, score, proxy)
             return self.db.zadd(REDIS_KEY, {proxy: score})
@@ -60,7 +59,7 @@ class RedisClient(object):
         if len(proxies):
             return convert_proxy_or_proxies(choice(proxies))
         # else raise error
-        raise PoolEmptyError
+        raise PoolEmptyException
     
     def decrease(self, proxy: Proxy) -> int:
         """
@@ -86,7 +85,7 @@ class RedisClient(object):
         :param proxy: proxy
         :return: if exists, bool
         """
-        return not self.db.zscore(REDIS_KEY, proxy.string()) == None
+        return not self.db.zscore(REDIS_KEY, proxy.string()) is None
     
     def max(self, proxy: Proxy) -> int:
         """
@@ -125,7 +124,5 @@ class RedisClient(object):
 
 if __name__ == '__main__':
     conn = RedisClient()
-    result = conn.batch(1, 10)
-    print(result)
     result = conn.random()
-    print(result, type(result))
+    print(result)

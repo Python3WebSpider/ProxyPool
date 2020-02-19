@@ -1,13 +1,13 @@
-from proxypool.db import RedisClient
+from loguru import logger
+from proxypool.storages.redis import RedisClient
 from proxypool.setting import PROXY_NUMBER_MAX
 from proxypool.crawlers import __all__ as crawlers_cls
 
 
-class Getter():
+class Getter(object):
     """
     getter of proxypool
     """
-    
     
     def __init__(self):
         """
@@ -17,7 +17,6 @@ class Getter():
         self.crawlers_cls = crawlers_cls
         self.crawlers = [crawler_cls() for crawler_cls in self.crawlers_cls]
     
-    
     def is_full(self):
         """
         if proxypool if full
@@ -25,7 +24,7 @@ class Getter():
         """
         return self.redis.count() >= PROXY_NUMBER_MAX
     
-    
+    @logger.catch
     def run(self):
         """
         run crawlers to get proxy
@@ -35,7 +34,6 @@ class Getter():
             return
         for crawler in self.crawlers:
             for proxy in crawler.crawl():
-                print('proxy', proxy)
                 self.redis.add(proxy)
 
 

@@ -1,9 +1,18 @@
+import platform
+from os.path import dirname, abspath, join
 from environs import Env
-from proxypool.utils import parse_redis_connection_string
+from loguru import logger
 
 
 env = Env()
 env.read_env()
+
+# definition of flags
+IS_WINDOWS = platform.system().lower() == 'windows'
+
+# definition of dirs
+ROOT_DIR = dirname(dirname(abspath(__file__)))
+LOG_DIR = join(ROOT_DIR, env.str('LOG_DIR', 'logs'))
 
 # definition of environments
 DEV_MODE, TEST_MODE, PROD_MODE = 'dev', 'test', 'prod'
@@ -26,7 +35,7 @@ REDIS_PASSWORD = env.str('REDIS_PASSWORD', None)
 #     REDIS_HOST, REDIS_PORT, REDIS_PASSWORD = parse_redis_connection_string(REDIS_CONNECTION_STRING)
 
 # redis hash table key name
-REDIS_KEY = env.str('REDIS_HOST', 'proxies')
+REDIS_KEY = env.str('REDIS_KEY', 'proxies:universal')
 
 # definition of proxy scores
 PROXY_SCORE_MAX = 100
@@ -59,4 +68,7 @@ API_THREADED = env.bool('API_THREADED', True)
 # flags of enable
 ENABLE_TESTER = env.bool('ENABLE_TESTER', True)
 ENABLE_GETTER = env.bool('ENABLE_GETTER', True)
-ENABLE_API = env.bool('ENABLE_API', True)
+ENABLE_SERVER = env.bool('ENABLE_SERVER', True)
+
+logger.add(env.str('LOG_RUNTIME_FILE', 'runtime.log'), level='DEBUG', rotation='1 week', retention='20 days')
+logger.add(env.str('LOG_ERROR_FILE', 'error.log'), level='ERROR', rotation='1 week')

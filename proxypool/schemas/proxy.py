@@ -10,9 +10,17 @@ class Proxy(object):
     port = attr(type=int, default=None)
     
     def __str__(self):
+        """
+        to string, for print
+        :return:
+        """
         return f'{self.host}:{self.port}'
     
     def string(self):
+        """
+        to string
+        :return: <host>:<port>
+        """
         return self.__str__()
 
 

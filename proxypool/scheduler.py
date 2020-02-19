@@ -1,50 +1,92 @@
 import time
-from multiprocessing import Process
-from proxypool.api import app
-from proxypool.getter import Getter
-from proxypool.tester import Tester
-from proxypool.db import RedisClient
-from proxypool.setting import *
+import multiprocessing
+from proxypool.processors.server import app
+from proxypool.processors.getter import Getter
+from proxypool.processors.tester import Tester
+from proxypool.setting import CYCLE_GETTER, CYCLE_TESTER, API_HOST, API_THREADED, API_PORT, ENABLE_SERVER, \
+    ENABLE_GETTER, ENABLE_TESTER, IS_WINDOWS
+from loguru import logger
+
+
+if IS_WINDOWS:
+    multiprocessing.freeze_support()
+
+tester_process, getter_process, server_process = None, None, None
 
 
 class Scheduler():
-    def schedule_tester(self, cycle=TESTER_CYCLE):
+    """
+    scheduler
+    """
+    
+    def run_tester(self, cycle=CYCLE_TESTER):
         """
-        定时测试代理
+        run tester
         """
         tester = Tester()
+        loop = 0
         while True:
-            print('测试器开始运行')
+            logger.debug(f'tester loop {loop} start...')
             tester.run()
+            loop += 1
             time.sleep(cycle)
     
-    def schedule_getter(self, cycle=GETTER_CYCLE):
+    def run_getter(self, cycle=CYCLE_GETTER):
         """
-        定时获取代理
+        run getter
         """
         getter = Getter()
+        loop = 0
         while True:
-            print('开始抓取代理')
+            logger.debug(f'getter loop {loop} start...')
             getter.run()
+            loop += 1
             time.sleep(cycle)
     
-    def schedule_api(self):
+    def run_server(self):
         """
-        开启API
+        run server for api
         """
-        app.run(API_HOST, API_PORT)
+        app.run(host=API_HOST, port=API_PORT, threaded=API_THREADED)
     
     def run(self):
-        print('代理池开始运行')
-        
-        if TESTER_ENABLED:
-            tester_process = Process(target=self.schedule_tester)
-            tester_process.start()
-        
-        if GETTER_ENABLED:
-            getter_process = Process(target=self.schedule_getter)
-            getter_process.start()
-        
-        if API_ENABLED:
-            api_process = Process(target=self.schedule_api)
-            api_process.start()
+        global tester_process, getter_process, server_process
+        try:
+            logger.info('starting proxypool...')
+            if ENABLE_TESTER:
+                tester_process = multiprocessing.Process(target=self.run_tester)
+                logger.info(f'starting tester, pid {tester_process.pid}...')
+                tester_process.start()
+            
+            if ENABLE_GETTER:
+                getter_process = multiprocessing.Process(target=self.run_getter)
+                logger.info(f'starting getter, pid{getter_process.pid}...')
+                getter_process.start()
+            
+            if ENABLE_SERVER:
+                server_process = multiprocessing.Process(target=self.run_server)
+                logger.info(f'starting server, pid{server_process.pid}...')
+                server_process.start()
+            
+            tester_process.join()
+            getter_process.join()
+            server_process.join()
+        except KeyboardInterrupt:
+            logger.info('received keyboard interrupt signal')
+            tester_process.terminate()
+            getter_process.terminate()
+            server_process.terminate()
+        finally:
+            # must call join method before calling is_alive
+            tester_process.join()
+            getter_process.join()
+            server_process.join()
+            logger.info(f'tester is {"alive" if tester_process.is_alive() else "dead"}')
+            logger.info(f'getter is {"alive" if getter_process.is_alive() else "dead"}')
+            logger.info(f'server is {"alive" if server_process.is_alive() else "dead"}')
+            logger.info('proxy terminated')
+
+
+if __name__ == '__main__':
+    scheduler = Scheduler()
+    scheduler.run()

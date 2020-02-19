@@ -1,52 +1,76 @@
 # ProxyPool
 
-## 安装
+## Requirements
 
-### 安装Python
+* Docker 
 
-至少Python3.5以上
+  or 
 
-### 安装Redis
+* Python: >=3.6
+* Redis
+* Environment: Virtual Env
 
-安装好之后将Redis服务开启
+## Run with Docker
 
-### 配置代理池
-
+```shell script
+docker-compose up
 ```
-cd proxypool
+
+## Run without Docker
+
+Here are steps to run ProxyPool.
+
+### Install Redis
+
+You need to install Redis locally or get a Redis server firstly.
+
+Next set Redis environment:
+
+```shell script
+export REDIS_HOST='localhost'
+export REDIS_PORT=6379
+export REDIS_PASSWORD='foobar'
 ```
 
-进入proxypool目录，修改settings.py文件
+Also you can just set the Redis Connection String:
 
-PASSWORD为Redis密码，如果为空，则设置为None
-
-#### 安装依赖
-
+```shell script
+export REDIS_CONNECTION_STRING='redis://[password]@host:port'
 ```
+
+You can choose one method of above to set Redis environment.
+
+### Clone ProxyPool
+
+```shell script
+https://github.com/Python3WebSpider/ProxyPool
+cd ProxyPool
+```
+
+### Install Requirements
+
+```shell script
 pip3 install -r requirements.txt
 ```
 
-#### 打开代理池和API
+### Run ProxyPool
 
-```
+You can run all of the processors including Getter、Tester、
+Server:
+
+```shell script
 python3 run.py
 ```
 
-## 获取代理
+or run with args to run specific processor:
 
-
-利用requests获取方法如下
-
-```python
-import requests
-
-PROXY_POOL_URL = 'http://localhost:5555/random'
-
-def get_proxy():
-    try:
-        response = requests.get(PROXY_POOL_URL)
-        if response.status_code == 200:
-            return response.text
-    except ConnectionError:
-        return None
+```shell script
+python3 run.py --processor getter
+python3 run.py --processor tester
+python3 run.py --processor server
 ```
+
+### Usage
+
+After running the ProxyPool, you can visit 
+[http://localhost:5555/random](http://localhost:5555/) to access random proxy.  

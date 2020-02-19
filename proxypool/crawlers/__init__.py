@@ -6,5 +6,5 @@ from .iphai import IPHaiCrawler
 __all__ = [
     Daili66Crawler,
     IP3366Crawler,
-    IP3366Crawler
+    IPHaiCrawler
 ]

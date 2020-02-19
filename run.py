@@ -1,17 +1,15 @@
 from proxypool.scheduler import Scheduler
-import sys
-import io
-
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+import argparse
 
 
-def main():
-    try:
-        s = Scheduler()
-        s.run()
-    except:
-        main()
-
+parser = argparse.ArgumentParser(description='ProxyPool')
+parser.add_argument('--processor', type=str, help='processor to run')
+args = parser.parse_args()
+print('args', args)
 
 if __name__ == '__main__':
-    main()
+    # if processor set, just run it
+    if args.processor:
+        getattr(Scheduler(), f'run_{args.processor}')()
+    else:
+        Scheduler().run()
