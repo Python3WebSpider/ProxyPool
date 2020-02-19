@@ -3,6 +3,8 @@ from os.path import dirname, abspath, join
 from environs import Env
 from loguru import logger
 
+from proxypool.utils.parse import parse_redis_connection_string
+
 
 env = Env()
 env.read_env()
@@ -29,10 +31,10 @@ REDIS_PORT = env.int('REDIS_PORT', 6379)
 # redis password, if no password, set it to None
 REDIS_PASSWORD = env.str('REDIS_PASSWORD', None)
 # redis connection string, like redis://[password]@host:port or rediss://[password]@host:port
-# REDIS_CONNECTION_STRING = env.str('REDIS_CONNECTION_STRING', None)
+REDIS_CONNECTION_STRING = env.str('REDIS_CONNECTION_STRING', None)
 
-# if REDIS_CONNECTION_STRING:
-#     REDIS_HOST, REDIS_PORT, REDIS_PASSWORD = parse_redis_connection_string(REDIS_CONNECTION_STRING)
+if REDIS_CONNECTION_STRING:
+    REDIS_HOST, REDIS_PORT, REDIS_PASSWORD = parse_redis_connection_string(REDIS_CONNECTION_STRING)
 
 # redis hash table key name
 REDIS_KEY = env.str('REDIS_KEY', 'proxies:universal')

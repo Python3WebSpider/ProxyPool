@@ -23,6 +23,9 @@ class Scheduler():
         """
         run tester
         """
+        if not ENABLE_TESTER:
+            logger.info('tester not enabled, exit')
+            return
         tester = Tester()
         loop = 0
         while True:
@@ -35,6 +38,9 @@ class Scheduler():
         """
         run getter
         """
+        if not ENABLE_GETTER:
+            logger.info('getter not enabled, exit')
+            return
         getter = Getter()
         loop = 0
         while True:
@@ -47,6 +53,9 @@ class Scheduler():
         """
         run server for api
         """
+        if not ENABLE_SERVER:
+            logger.info('server not enabled, exit')
+            return
         app.run(host=API_HOST, port=API_PORT, threaded=API_THREADED)
     
     def run(self):

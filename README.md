@@ -1,14 +1,20 @@
 # ProxyPool
 
+![](https://img.shields.io/badge/python-3.6%2B-brightgreen)
+
+Welcome to ProxyPool.
+
 ## Requirements
 
-* Docker 
+Below is a list of requirements for ProxyPool.
+
+* Docker
+* Docker-Compose
 
   or 
 
 * Python: >=3.6
 * Redis
-* Environment: Virtual Env
 
 ## Run with Docker
 
@@ -70,7 +76,9 @@ python3 run.py --processor tester
 python3 run.py --processor server
 ```
 
-### Usage
+## Usage
 
 After running the ProxyPool, you can visit 
 [http://localhost:5555/random](http://localhost:5555/) to access random proxy.  
+
+Just enjoy it.
