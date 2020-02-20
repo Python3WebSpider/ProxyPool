@@ -1,0 +1,22 @@
+---
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: ingress-universal-proxypool
+  namespace: proxypool
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  tls:
+    - hosts:
+        - universal.proxypool.cuiqingcai.com
+      secretName: tls-proxypool-cuiqingcai-com
+  rules:
+    - host: universal.proxypool.cuiqingcai.com
+      http:
+        paths:
+          - backend:
+              serviceName: proxypool
+              servicePort: 5555
+            path: /

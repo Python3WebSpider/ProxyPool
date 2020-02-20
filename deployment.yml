@@ -59,6 +59,7 @@ items:
       namespace: proxypool
     spec:
       replicas: 1
+      revisionHistoryLimit: 0
       strategy: {}
       template:
         metadata:
@@ -73,6 +74,8 @@ items:
             - env:
                 - name: REDIS_HOST
                   value: redis
+                - name: REDIS_PORT
+                  value: 6379
               image: germey/proxypool:${TAG}
               name: proxypool
               ports:
@@ -93,6 +96,7 @@ items:
       namespace: proxypool
     spec:
       replicas: 1
+      revisionHistoryLimit: 0
       strategy: {}
       template:
         metadata:
@@ -115,4 +119,3 @@ items:
     status: {}
 kind: List
 metadata: {}
-
