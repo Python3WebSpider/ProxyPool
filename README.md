@@ -308,7 +308,7 @@ class Daili66Crawler(BaseCrawler):
 本项目提供了 Kubernetes 部署脚本，如需部署到 Kubernetes，执行如下命令即可：
 
 ```shell script
-kubectl apply -f deployment.yml
+cat deployment.yml | sed 's/\${TAG}/latest/g' | kubectl apply -f -
 ```
 
 ## LICENSE
