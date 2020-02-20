@@ -1,5 +1,6 @@
 # ProxyPool
 
+![build](https://github.com/Python3WebSpider/ProxyPool/workflows/build/badge.svg)
 ![](https://img.shields.io/badge/python-3.6%2B-brightgreen)
 ![Docker Pulls](https://img.shields.io/docker/pulls/germey/proxypool)
 
