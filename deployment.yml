@@ -75,7 +75,7 @@ items:
                 - name: REDIS_HOST
                   value: redis
                 - name: REDIS_PORT
-                  value: 6379
+                  value: '6379'
               image: germey/proxypool:${TAG}
               name: proxypool
               ports:
