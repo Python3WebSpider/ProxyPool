@@ -20,6 +20,6 @@ jobs:
     - name: Build the Docker Image
       run: docker-compose build
     - name: Tag the Docker Image
-      run: docker tag germey/proxypool docker.pkg.github.com/python3webspider/proxypool:master
+      run: docker tag germey/proxypool docker.pkg.github.com/python3webspider/proxypool/proxypool:master
     - name: Push the Docker Image
-      run: docker push docker.pkg.github.com/python3webspider/proxypool:master
+      run: docker push docker.pkg.github.com/python3webspider/proxypool/proxypool:master
