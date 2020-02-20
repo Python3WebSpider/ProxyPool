@@ -73,7 +73,7 @@ items:
             - env:
                 - name: REDIS_HOST
                   value: redis
-              image: germey/proxypool
+              image: germey/proxypool:{TAG}
               name: proxypool
               ports:
                 - containerPort: 5555
