@@ -1,0 +1,25 @@
+name: package
+on:
+  push:
+    branches: 
+    - master
+    paths-ignore:
+    - .gitignore
+    - README.md
+    - '.github/ISSUE_TEMPLATE/**'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Source
+      uses: actions/checkout@v1
+    - name: Setup Docker
+      uses: docker-practice/actions-setup-docker@0.0.1
+    - name: Docker Login
+      run: docker login -u Germey -p ${{ secrets.github_token }} docker.pkg.github.com
+    - name: Build the Docker Image
+      run: docker-compose build
+    - name: Tag the Docker Image
+      run: docker tag germey/proxypool docker.pkg.github.com/python3webspider/proxypool/proxypool:master
+    - name: Push the Docker Image
+      run: docker push docker.pkg.github.com/python3webspider/proxypool/proxypool:master
