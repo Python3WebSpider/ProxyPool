@@ -313,6 +313,13 @@ class Daili66Crawler(BaseCrawler):
 cat deployment.yml | sed 's/\${TAG}/latest/g' | kubectl apply -f -
 ```
 
+## 待开发
+
+- [ ] 前端页面管理
+- [ ] 使用情况统计分析
+
+如有一起开发的兴趣可以在 Issue 留言，非常感谢！
+
 ## LICENSE
 
 MIT
