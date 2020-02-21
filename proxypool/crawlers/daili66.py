@@ -3,7 +3,7 @@ from proxypool.schemas.proxy import Proxy
 from proxypool.crawlers.base import BaseCrawler
 
 
-BASE_URL = 'http://www.664ip.cn/{page}.html'
+BASE_URL = 'http://www.66ip.cn/{page}.html'
 MAX_PAGE = 5
 
 
