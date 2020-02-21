@@ -14,6 +14,12 @@
 
 代理池原理解析可见「[如何搭建一个高效的代理池](https://cuiqingcai.com/7048.html)」，建议使用之前阅读。
 
+## 运行示例
+
+API Server 可以见[部署样例](https://universal.proxypool.cuiqingcai.com/)，随机代理[取用地址](https://universal.proxypool.cuiqingcai.com/random)，代理源比较少，仅供演示。
+
+本样例为 GitHub Actions + Kubernetes 自动部署 master 分支代码结果。
+
 ## 使用要求
 
 可以通过两种方式来运行代理池，一种方式是使用 Docker（推荐），另一种方式是常规方式运行。
