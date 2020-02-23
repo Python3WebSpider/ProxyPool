@@ -39,26 +39,6 @@ items:
         io.kompose.service: proxypool
     status:
       loadBalancer: {}
-  - apiVersion: v1
-    kind: Service
-    metadata:
-      annotations:
-        kompose.cmd: kompose convert -f docker-compose.yml -o deployment.yml
-        kompose.version: 1.20.0 ()
-      creationTimestamp: null
-      labels:
-        io.kompose.service: redis
-      name: redis
-      namespace: proxypool
-    spec:
-      ports:
-        - name: "6379"
-          port: 6379
-          targetPort: 6379
-      selector:
-        io.kompose.service: redis
-    status:
-      loadBalancer: {}
   - apiVersion: extensions/v1beta1
     kind: Deployment
     metadata:
@@ -85,10 +65,11 @@ items:
         spec:
           containers:
             - env:
-                - name: REDIS_HOST
-                  value: redis
-                - name: REDIS_PORT
-                  value: '6379'
+                - name: REDIS_CONNECTION_STRING
+                  valueFrom:
+                    secretKeyRef:
+                      name: redis
+                      key: connection_string
               image: germey/proxypool:${TAG}
               name: proxypool
               ports:
@@ -102,40 +83,6 @@ items:
             - name: proxypool
               persistentVolumeClaim:
                 claimName: proxypool
-    status: {}
-  - apiVersion: extensions/v1beta1
-    kind: Deployment
-    metadata:
-      annotations:
-        kompose.cmd: kompose convert -f docker-compose.yml -o deployment.yml
-        kompose.version: 1.20.0 ()
-      creationTimestamp: null
-      labels:
-        io.kompose.service: redis
-      name: redis
-      namespace: proxypool
-    spec:
-      replicas: 1
-      revisionHistoryLimit: 0
-      strategy: {}
-      template:
-        metadata:
-          annotations:
-            kompose.cmd: kompose convert -f docker-compose.yml -o deployment.yml
-            kompose.version: 1.20.0 ()
-          creationTimestamp: null
-          labels:
-            io.kompose.service: redis
-        spec:
-          containers:
-            - args:
-                - redis-server
-              image: redis:alpine
-              name: redis
-              ports:
-                - containerPort: 6379
-              resources: {}
-          restartPolicy: Always
     status: {}
 kind: List
 metadata: {}
