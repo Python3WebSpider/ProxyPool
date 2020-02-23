@@ -5,6 +5,19 @@ metadata:
   name: proxypool
 ---
 apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: proxypool
+  namespace: proxypool
+spec:
+  storageClassName: azure-file
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
 items:
   - apiVersion: v1
     kind: Service
@@ -81,7 +94,14 @@ items:
               ports:
                 - containerPort: 5555
               resources: {}
+              volumeMounts:
+                - mountPath: "/app/proxypool"
+                  name: proxypool
           restartPolicy: Always
+          volumes:
+            - name: proxypool
+              persistentVolumeClaim:
+                claimName: proxypool
     status: {}
   - apiVersion: extensions/v1beta1
     kind: Deployment

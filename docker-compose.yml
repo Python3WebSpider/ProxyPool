@@ -14,5 +14,7 @@ services:
     ports:
       - "5555:5555"
     restart: always
+    volumes:
+      - /tmp/proxypool:/app/proxypool
     environment:
       REDIS_HOST: redis
