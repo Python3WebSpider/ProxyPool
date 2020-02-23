@@ -95,7 +95,7 @@ items:
                 - containerPort: 5555
               resources: {}
               volumeMounts:
-                - mountPath: "/app/proxypool"
+                - mountPath: "/app/proxypool/crawlers"
                   name: proxypool
           restartPolicy: Always
           volumes:
