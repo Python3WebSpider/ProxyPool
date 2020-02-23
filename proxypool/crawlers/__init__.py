@@ -11,4 +11,4 @@ for loader, name, is_pkg in pkgutil.walk_packages(__path__):
         globals()[name] = value
         if inspect.isclass(value) and issubclass(value, BaseCrawler) and value is not BaseCrawler:
             classes.append(value)
-__ALL__ = classes
+__all__ = __ALL__ = classes
