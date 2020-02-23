@@ -11,7 +11,7 @@ class KuaidailiCrawler(BaseCrawler):
     """
     kuaidaili crawler, https://www.kuaidaili.com/
     """
-    urls = [BASE_URL.format(page=page) for page in range(1, 100)]
+    urls = [BASE_URL.format(page=page) for page in range(1, 200)]
     
     def parse(self, html):
         """
