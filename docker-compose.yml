@@ -15,6 +15,6 @@ services:
       - "5555:5555"
     restart: always
     volumes:
-      - /tmp/proxypool/crawlers:/app/proxypool/crawlers
+      - /tmp/proxypool/crawlers/private:/app/proxypool/crawlers/private
     environment:
       REDIS_HOST: redis
