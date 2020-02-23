@@ -70,6 +70,8 @@ items:
                     secretKeyRef:
                       name: redis
                       key: connection_string
+                - name: REDIS_PORT
+                  value: '6379'
               image: germey/proxypool:${TAG}
               name: proxypool
               ports:
