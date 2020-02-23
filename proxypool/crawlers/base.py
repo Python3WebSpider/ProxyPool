@@ -24,5 +24,5 @@ class BaseCrawler(object):
             logger.info(f'fetching {url}')
             html = self.fetch(url)
             for proxy in self.parse(html):
-                logger.info(f'fetched proxy {proxy.string()}')
+                logger.info(f'fetched proxy {proxy.string()} from {url}')
                 yield proxy
