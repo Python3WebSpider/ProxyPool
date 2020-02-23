@@ -1,6 +1,7 @@
 # ProxyPool
 
 ![build](https://github.com/Python3WebSpider/ProxyPool/workflows/build/badge.svg)
+![deploy](https://github.com/Python3WebSpider/ProxyPool/workflows/deploy/badge.svg)
 ![](https://img.shields.io/badge/python-3.6%2B-brightgreen)
 ![Docker Pulls](https://img.shields.io/docker/pulls/germey/proxypool)
 
@@ -12,6 +13,12 @@
 * 提供代理 API，随机取用测试通过的可用代理。
 
 代理池原理解析可见「[如何搭建一个高效的代理池](https://cuiqingcai.com/7048.html)」，建议使用之前阅读。
+
+## 运行示例
+
+API Server 可以见[部署样例](https://universal.proxypool.cuiqingcai.com/)，随机代理[取用地址](https://universal.proxypool.cuiqingcai.com/random)，代理源比较少，仅供演示。
+
+本样例为 GitHub Actions + Kubernetes 自动部署 master 分支代码结果。
 
 ## 使用要求
 
@@ -311,6 +318,13 @@ class Daili66Crawler(BaseCrawler):
 ```shell script
 cat deployment.yml | sed 's/\${TAG}/latest/g' | kubectl apply -f -
 ```
+
+## 待开发
+
+- [ ] 前端页面管理
+- [ ] 使用情况统计分析
+
+如有一起开发的兴趣可以在 Issue 留言，非常感谢！
 
 ## LICENSE
 
