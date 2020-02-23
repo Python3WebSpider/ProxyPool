@@ -72,7 +72,7 @@ items:
       namespace: proxypool
     spec:
       replicas: 1
-      revisionHistoryLimit: 0
+      revisionHistoryLimit: 1
       strategy: {}
       template:
         metadata:
