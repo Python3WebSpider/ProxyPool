@@ -11,7 +11,7 @@ spec:
   tls:
     - hosts:
         - universal.proxypool.cuiqingcai.com
-      secretName: tls-proxypool-cuiqingcai-com
+      secretName: tls-wildcard-proxypool-cuiqingcai-com
   rules:
     - host: universal.proxypool.cuiqingcai.com
       http:
