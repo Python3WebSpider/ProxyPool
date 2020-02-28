@@ -10,7 +10,7 @@ metadata:
   name: proxypool
   namespace: proxypool
 spec:
-  storageClassName: azure-file
+  storageClassName: default
   accessModes:
     - ReadWriteOnce
   resources:
@@ -74,6 +74,13 @@ items:
                   value: '6379'
               image: germey/proxypool:${TAG}
               name: proxypool
+              resources:
+                limits:
+                  memory: "500Mi"
+                  cpu: "300m"
+                requests: 
+                  memory: "500Mi"
+                  cpu: "300m"
               ports:
                 - containerPort: 5555
               resources: {}

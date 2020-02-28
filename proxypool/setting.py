@@ -20,8 +20,8 @@ DEV_MODE, TEST_MODE, PROD_MODE = 'dev', 'test', 'prod'
 APP_ENV = env.str('APP_ENV', DEV_MODE).lower()
 APP_DEBUG = env.bool('APP_DEBUG', True if APP_ENV == DEV_MODE else False)
 APP_DEV = IS_DEV = APP_ENV == DEV_MODE
-APP_PROD = IS_PROD = APP_DEV == PROD_MODE
-APP_TEST = IS_TEST = APP_ENV = TEST_MODE
+APP_PROD = IS_PROD = APP_ENV == PROD_MODE
+APP_TEST = IS_TEST = APP_ENV == TEST_MODE
 
 # redis host
 REDIS_HOST = env.str('REDIS_HOST', '127.0.0.1')
