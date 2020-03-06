@@ -2,7 +2,7 @@ name: deploy
 on:
   push:
     branches:
-      - master
+      - release
     paths-ignore:
       - .gitignore
       - README.md
