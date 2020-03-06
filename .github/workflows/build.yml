@@ -19,3 +19,8 @@ jobs:
       run: docker-compose build
     - name: Push the Docker Image
       run: docker-compose push
+    - name: Tag and Push Latest
+      run: |
+        docker tag germey/proxypool germey/proxypool:master
+        docker push germey/proxypool:master
+      
