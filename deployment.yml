@@ -10,12 +10,12 @@ metadata:
   name: proxypool
   namespace: proxypool
 spec:
-  storageClassName: default
+  storageClassName: azure-file
   accessModes:
     - ReadWriteMany
   resources:
     requests:
-      storage: 1Gi
+      storage: 2Gi
 ---
 apiVersion: v1
 items:
@@ -91,7 +91,7 @@ items:
           volumes:
             - name: proxypool
               persistentVolumeClaim:
-                claimName: proxypool
+                claimName: pvc-proxypool
     status: {}
 kind: List
 metadata: {}
