@@ -12,7 +12,7 @@ metadata:
 spec:
   storageClassName: azure-file
   accessModes:
-    - ReadWriteMany
+    - ReadWriteOnce
   resources:
     requests:
       storage: 2Gi
