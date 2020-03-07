@@ -12,7 +12,7 @@ metadata:
 spec:
   storageClassName: azure-file
   accessModes:
-    - ReadWriteOnce
+    - ReadWriteMany
   resources:
     requests:
       storage: 2Gi
@@ -78,12 +78,11 @@ items:
                 limits:
                   memory: "500Mi"
                   cpu: "300m"
-                requests: 
+                requests:
                   memory: "500Mi"
                   cpu: "300m"
               ports:
                 - containerPort: 5555
-              resources: {}
               volumeMounts:
                 - mountPath: "/app/proxypool/crawlers/private"
                   name: proxypool
