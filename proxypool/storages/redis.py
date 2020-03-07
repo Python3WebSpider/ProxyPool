@@ -39,8 +39,8 @@ class RedisClient(object):
             return
         if not self.exists(proxy):
             if IS_REDIS_VERSION_2:
-                return self.db.zadd(REDIS_KEY, score, proxy)
-            return self.db.zadd(REDIS_KEY, {proxy: score})
+                return self.db.zadd(REDIS_KEY, score, proxy.string())
+            return self.db.zadd(REDIS_KEY, {proxy.string(): score})
     
     def random(self) -> Proxy:
         """
@@ -77,7 +77,7 @@ class RedisClient(object):
         # otherwise delete proxy
         else:
             logger.info(f'{proxy.string()} current score {score}, remove')
-            return self.db.zrem(REDIS_KEY, proxy)
+            return self.db.zrem(REDIS_KEY, proxy.string())
     
     def exists(self, proxy: Proxy) -> bool:
         """
