@@ -39,7 +39,7 @@ items:
         io.kompose.service: proxypool
     status:
       loadBalancer: {}
-  - apiVersion: extensions/v1beta1
+  - apiVersion: apps/v1
     kind: Deployment
     metadata:
       annotations:
@@ -54,6 +54,9 @@ items:
       replicas: 2
       revisionHistoryLimit: 1
       strategy: {}
+      selector:
+        matchLabels:
+          io.kompose.service: proxypool
       template:
         metadata:
           annotations:

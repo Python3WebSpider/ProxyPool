@@ -37,6 +37,7 @@ jobs:
         run: |
           docker-compose build
           docker tag germey/proxypool germey/proxypool:$BUILD_NUMBER
+          docker push germey/proxypool
           docker push germey/proxypool:$BUILD_NUMBER
           cat deployment.yml | sed 's/\${TAG}/'"$BUILD_NUMBER"'/g' | kubectl apply -f -
           
