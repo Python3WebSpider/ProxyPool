@@ -36,6 +36,7 @@ class ZhandayeCrawler(BaseCrawler):
 
 class ZhandayeDetailCrawler(BaseCrawler):
     urls = []
+    ignore = True
 
     def __init__(self, url):
         self.urls.append(url)
