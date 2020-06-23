@@ -22,7 +22,7 @@ celery_worker_max_tasks_per_child = 40
 
 BROKER_URL = 'amqp://admin:admin@localhost/' # 使用RabbitMQ作为消息代理
 
-CELERY_RESULT_BACKEND = "redis://@localhost:6379/1" # 把任务结果存在了Redis
+CELERY_RESULT_BACKEND = "redis://localhost:6379/1" # 把任务结果存在了Redis
 
 CELERY_TASK_SERIALIZER = 'json' # 任务序列化和反序列化使用msgpack方案
 
