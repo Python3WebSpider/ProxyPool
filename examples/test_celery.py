@@ -7,7 +7,7 @@ def test_celery():
 
 
 def test_run_getter():
-    r2 = run_getter.delay()
+    r2 = run_getter()
     print(r2.task_id, r2.get())
 
 
@@ -17,4 +17,4 @@ def test_run_tester():
 
 
 if __name__ == '__main__':
-    test_run_tester()
+    test_run_getter()
