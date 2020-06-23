@@ -28,7 +28,7 @@ REDIS_HOST = env.str('REDIS_HOST', '127.0.0.1')
 # redis port
 REDIS_PORT = env.int('REDIS_PORT', 6379)
 # redis password, if no password, set it to None
-REDIS_PASSWORD = env.str('REDIS_PASSWORD', None)
+REDIS_PASSWORD = env.str('REDIS_PASSWORD', "rivir")
 # redis connection string, like redis://[password]@host:port or rediss://[password]@host:port
 REDIS_CONNECTION_STRING = env.str('REDIS_CONNECTION_STRING', None)
 
@@ -63,7 +63,7 @@ TEST_VALID_STATUS = env.list('TEST_VALID_STATUS', [200, 206, 302])
 
 # definition of api
 API_HOST = env.str('API_HOST', '0.0.0.0')
-API_PORT = env.int('API_PORT', 5555)
+API_PORT = env.int('API_PORT', 5000)
 API_THREADED = env.bool('API_THREADED', True)
 
 # flags of enable

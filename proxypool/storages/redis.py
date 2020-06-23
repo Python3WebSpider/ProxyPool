@@ -97,7 +97,7 @@ class RedisClient(object):
         if IS_REDIS_VERSION_2:
             return self.db.zadd(REDIS_KEY, PROXY_SCORE_MAX, proxy.string())
         return self.db.zadd(REDIS_KEY, {proxy.string(): PROXY_SCORE_MAX})
-    
+
     def count(self) -> int:
         """
         get count of proxies
