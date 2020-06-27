@@ -14,7 +14,8 @@ EXCEPTIONS = (
     TimeoutError,
     ServerDisconnectedError,
     ClientOSError,
-    ClientHttpProxyError
+    ClientHttpProxyError,
+    AssertionError
 )
 
 
