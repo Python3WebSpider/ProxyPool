@@ -29,11 +29,13 @@ REDIS_HOST = env.str('REDIS_HOST', '127.0.0.1')
 REDIS_PORT = env.int('REDIS_PORT', 6379)
 # redis password, if no password, set it to None
 REDIS_PASSWORD = env.str('REDIS_PASSWORD', None)
-# redis connection string, like redis://[password]@host:port or rediss://[password]@host:port
+# redis db, if no choice, set it to 0
+REDIS_DB = env.int('REDIS_DB', 1)
+# redis connection string, like redis://[password]@host:port or rediss://[password]@host:port/0
 REDIS_CONNECTION_STRING = env.str('REDIS_CONNECTION_STRING', None)
 
 if REDIS_CONNECTION_STRING:
-    REDIS_HOST, REDIS_PORT, REDIS_PASSWORD = parse_redis_connection_string(REDIS_CONNECTION_STRING)
+    REDIS_HOST, REDIS_PORT, REDIS_PASSWORD, REDIS_DB = parse_redis_connection_string(REDIS_CONNECTION_STRING)
 
 # redis hash table key name
 REDIS_KEY = env.str('REDIS_KEY', 'proxies:universal')

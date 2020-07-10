@@ -1,7 +1,7 @@
 import redis
 from proxypool.exceptions import PoolEmptyException
 from proxypool.schemas.proxy import Proxy
-from proxypool.setting import REDIS_HOST, REDIS_PORT, REDIS_PASSWORD, REDIS_KEY, PROXY_SCORE_MAX, PROXY_SCORE_MIN, \
+from proxypool.setting import REDIS_HOST, REDIS_PORT, REDIS_PASSWORD, REDIS_DB, REDIS_KEY, PROXY_SCORE_MAX, PROXY_SCORE_MIN, \
     PROXY_SCORE_INIT
 from random import choice
 from typing import List
@@ -17,16 +17,16 @@ class RedisClient(object):
     """
     redis connection client of proxypool
     """
-    
-    def __init__(self, host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWORD, **kwargs):
+
+    def __init__(self, host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWORD, db=REDIS_DB, **kwargs):
         """
         init redis client
         :param host: redis host
         :param port: redis port
         :param password: redis password
         """
-        self.db = redis.StrictRedis(host=host, port=port, password=password, decode_responses=True, **kwargs)
-    
+        self.db = redis.StrictRedis(host=host, port=port, password=password, db=db, decode_responses=True, **kwargs)
+
     def add(self, proxy: Proxy, score=PROXY_SCORE_INIT) -> int:
         """
         add proxy and set it to init score
@@ -41,7 +41,7 @@ class RedisClient(object):
             if IS_REDIS_VERSION_2:
                 return self.db.zadd(REDIS_KEY, score, proxy.string())
             return self.db.zadd(REDIS_KEY, {proxy.string(): score})
-    
+
     def random(self) -> Proxy:
         """
         get random proxy
@@ -60,7 +60,7 @@ class RedisClient(object):
             return convert_proxy_or_proxies(choice(proxies))
         # else raise error
         raise PoolEmptyException
-    
+
     def decrease(self, proxy: Proxy) -> int:
         """
         decrease score of proxy, if small than PROXY_SCORE_MIN, delete it
@@ -78,7 +78,7 @@ class RedisClient(object):
         else:
             logger.info(f'{proxy.string()} current score {score}, remove')
             return self.db.zrem(REDIS_KEY, proxy.string())
-    
+
     def exists(self, proxy: Proxy) -> bool:
         """
         if proxy exists
@@ -86,7 +86,7 @@ class RedisClient(object):
         :return: if exists, bool
         """
         return not self.db.zscore(REDIS_KEY, proxy.string()) is None
-    
+
     def max(self, proxy: Proxy) -> int:
         """
         set proxy to max score
@@ -97,21 +97,21 @@ class RedisClient(object):
         if IS_REDIS_VERSION_2:
             return self.db.zadd(REDIS_KEY, PROXY_SCORE_MAX, proxy.string())
         return self.db.zadd(REDIS_KEY, {proxy.string(): PROXY_SCORE_MAX})
-    
+
     def count(self) -> int:
         """
         get count of proxies
         :return: count, int
         """
         return self.db.zcard(REDIS_KEY)
-    
+
     def all(self) -> List[Proxy]:
         """
         get all proxies
         :return: list of proxies
         """
         return convert_proxy_or_proxies(self.db.zrangebyscore(REDIS_KEY, PROXY_SCORE_MIN, PROXY_SCORE_MAX))
-    
+
     def batch(self, start, end) -> List[Proxy]:
         """
         get batch of proxies
