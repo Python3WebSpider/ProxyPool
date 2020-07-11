@@ -6,7 +6,7 @@ from loguru import logger
 class BaseCrawler(object):
     urls = []
     
-    @retry(stop_max_attempt_number=3, retry_on_result=lambda x: x is None)
+    @retry(stop_max_attempt_number=3, retry_on_result=lambda x: x is None, wait_fixed=2000)
     def fetch(self, url, **kwargs):
         try:
             response = requests.get(url, **kwargs)
