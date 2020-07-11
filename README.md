@@ -88,10 +88,10 @@ export REDIS_PASSWORD=''
 或者只设置连接字符串：
 
 ```shell script
-export REDIS_CONNECTION_STRING='redis://[password]@host:port'
+export REDIS_CONNECTION_STRING='redis://[password]@host:port/db'
 ```
 
-这里连接字符串的格式需要符合 `redis://[password]@host:port` 的格式。
+这里连接字符串的格式需要符合 `redis://[password]@host:port/db` 的格式。
 
 以上两种设置任选其一即可。
 
