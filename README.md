@@ -88,10 +88,10 @@ export REDIS_PASSWORD=''
 或者只设置连接字符串：
 
 ```shell script
-export REDIS_CONNECTION_STRING='redis://[password]@host:port'
+export REDIS_CONNECTION_STRING='redis://[password]@host:port/db'
 ```
 
-这里连接字符串的格式需要符合 `redis://[password]@host:port` 的格式。
+这里连接字符串的格式需要符合 `redis://[password]@host:port/db` 的格式。
 
 以上两种设置任选其一即可。
 
@@ -212,6 +212,7 @@ get random proxy 116.196.115.209:8080
 * REDIS_HOST：Redis 的 Host
 * REDIS_PORT：Redis 的端口
 * REDIS_PASSWORD：Redis 的密码
+* REDIS_DB：Redis 的数据库索引，如 0、1
 * REDIS_CONNECTION_STRING：Redis 连接字符串
 * REDIS_KEY：Redis 储存代理使用字典的名称
 
