@@ -74,14 +74,15 @@ class Tester(object):
         logger.info('stating tester...')
         count = self.redis.count()
         logger.debug(f'{count} proxies to test')
-        for i in range(0, count, TEST_BATCH):
-            # start end end offset
-            start, end = i, min(i + TEST_BATCH, count)
-            logger.debug(f'testing proxies from {start} to {end} indices')
-            proxies = self.redis.batch(start, end)
-            tasks = [self.test(proxy) for proxy in proxies]
-            # run tasks using event loop
-            self.loop.run_until_complete(asyncio.wait(tasks))
+        cursor = 0
+        while True:
+            logger.debug(f'testing proxies use cursor {cursor}, count {TEST_BATCH}')
+            cursor, proxies = self.redis.batch(cursor, count=TEST_BATCH)
+            if proxies:
+                tasks = [self.test(proxy) for proxy in proxies]
+                self.loop.run_until_complete(asyncio.wait(tasks))
+            if not cursor:
+                break
 
 
 if __name__ == '__main__':
