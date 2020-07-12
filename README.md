@@ -128,6 +128,12 @@ python3 run.py --processor server
 
 这里 processor 可以指定运行 Tester、Getter 还是 Server。
 
+### celery 方式运行代理池
+```
+python celery_proxy.py worker -l info  // 运行消费者
+python celery_proxy.py beat -l info //运行定时任务
+```
+
 ## 使用
 
 成功运行之后可以通过 [http://localhost:5555/random](http://localhost:5555/random) 获取一个随机可用代理。

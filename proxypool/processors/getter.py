@@ -2,7 +2,7 @@ from loguru import logger
 from proxypool.storages.redis import RedisClient
 from proxypool.setting import PROXY_NUMBER_MAX
 from proxypool.crawlers import __all__ as crawlers_cls
-
+from proxypool.crawlers import PLUGINS
 
 class Getter(object):
     """
@@ -30,6 +30,7 @@ class Getter(object):
         run crawlers to get proxy
         :return:
         """
+        logger.info(f"加载爬虫插件: {PLUGINS}")
         if self.is_full():
             return
         for crawler in self.crawlers:
