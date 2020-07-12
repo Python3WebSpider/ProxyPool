@@ -1,7 +1,7 @@
 import pkgutil
 from .base import BaseCrawler
-from .public.zhandaye import ZhandayeDetailCrawler
 import inspect
+
 
 # load classes subclass of BaseCrawler
 classes = []
@@ -13,3 +13,4 @@ for loader, name, is_pkg in pkgutil.walk_packages(__path__):
                 and not getattr(value, 'ignore', False):
             classes.append(value)
 __all__ = __ALL__ = classes
+
