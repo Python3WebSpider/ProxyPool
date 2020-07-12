@@ -5,13 +5,14 @@ from pyquery import PyQuery as pq
 
 
 BASE_URL = 'https://www.kuaidaili.com/free/inha/{page}/'
+MAX_PAGE = 5
 
 
 class KuaidailiCrawler(BaseCrawler):
     """
     kuaidaili crawler, https://www.kuaidaili.com/
     """
-    urls = [BASE_URL.format(page=page) for page in range(1, 5)]
+    urls = [BASE_URL.format(page=page) for page in range(1, MAX_PAGE + 1)]
     
     def parse(self, html):
         """
