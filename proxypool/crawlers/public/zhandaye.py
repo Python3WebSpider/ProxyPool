@@ -20,7 +20,7 @@ class ZhandayeCrawler(BaseCrawler):
 
     def crawl(self):
         self.crawl_catalog()
-        super().crawl()
+        yield from super().crawl()
 
     def crawl_catalog(self):
         for url in self.urls_catalog:
