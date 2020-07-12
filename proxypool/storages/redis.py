@@ -68,16 +68,14 @@ class RedisClient(object):
         :return: new score
         """
         score = self.db.zscore(REDIS_KEY, proxy.string())
-        # current score is larger than PROXY_SCORE_MIN
-        if score and score > PROXY_SCORE_MIN:
-            logger.info(f'{proxy.string()} current score {score}, decrease 1')
-            if IS_REDIS_VERSION_2:
-                return self.db.zincrby(REDIS_KEY, proxy.string(), -1)
-            return self.db.zincrby(REDIS_KEY, -1, proxy.string())
-        # otherwise delete proxy
+        logger.info(f'{proxy.string()} current score {score}, decrease 1')
+        if IS_REDIS_VERSION_2:
+            self.db.zincrby(REDIS_KEY, proxy.string(), -1)
         else:
+            self.db.zincrby(REDIS_KEY, -1, proxy.string())
+        if score <= PROXY_SCORE_MIN:
             logger.info(f'{proxy.string()} current score {score}, remove')
-            return self.db.zrem(REDIS_KEY, proxy.string())
+            self.db.zrem(REDIS_KEY, proxy.string())
 
     def exists(self, proxy: Proxy) -> bool:
         """
