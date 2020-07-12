@@ -10,8 +10,11 @@ class BaseCrawler(object):
     @retry(stop_max_attempt_number=3, retry_on_result=lambda x: x is None, wait_fixed=2000)
     def fetch(self, url, **kwargs):
         try:
-            response = requests.get(url, timeout=GET_TIMEOUT, **kwargs)
+            kwargs.setdefault('timeout', GET_TIMEOUT)
+            kwargs.setdefault('verify', False)
+            response = requests.get(url, **kwargs)
             if response.status_code == 200:
+                response.encoding = 'utf-8'
                 return response.text
         except requests.ConnectionError:
             return
