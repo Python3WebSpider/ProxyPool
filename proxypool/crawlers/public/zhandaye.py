@@ -16,9 +16,11 @@ class ZhandayeCrawler(BaseCrawler):
     headers = {
         'User-Agent': 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.61 Safari/537.36'
     }
-    def __init__(self):
-        self.urls = []
+    urls = []
+
+    def crawl(self):
         self.crawl_catalog()
+        super().crawl()
 
     def crawl_catalog(self):
         for url in self.urls_catalog:
