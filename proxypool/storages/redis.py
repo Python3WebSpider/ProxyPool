@@ -67,12 +67,12 @@ class RedisClient(object):
         :param proxy: proxy
         :return: new score
         """
-        score = self.db.zscore(REDIS_KEY, proxy.string())
-        logger.info(f'{proxy.string()} current score {score}, decrease 1')
         if IS_REDIS_VERSION_2:
             self.db.zincrby(REDIS_KEY, proxy.string(), -1)
         else:
             self.db.zincrby(REDIS_KEY, -1, proxy.string())
+        score = self.db.zscore(REDIS_KEY, proxy.string())
+        logger.info(f'{proxy.string()} score decrease 1, current {score}')
         if score <= PROXY_SCORE_MIN:
             logger.info(f'{proxy.string()} current score {score}, remove')
             self.db.zrem(REDIS_KEY, proxy.string())
