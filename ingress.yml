@@ -12,8 +12,18 @@ spec:
     - hosts:
         - universal.proxypool.cuiqingcai.com
       secretName: tls-wildcard-proxypool-cuiqingcai-com
+    - hosts:
+        - proxypool.scrape.center
+      secretName: tls-wildcard-scrape-center
   rules:
     - host: universal.proxypool.cuiqingcai.com
+      http:
+        paths:
+          - backend:
+              serviceName: proxypool
+              servicePort: 5555
+            path: /
+    - host: proxypool.scrape.center
       http:
         paths:
           - backend:
