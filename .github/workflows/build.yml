@@ -17,8 +17,6 @@ jobs:
       run: docker login -u germey -p ${{ secrets.DOCKERHUB_LOGIN_PASSWORD }}
     - name: Build the Docker Image
       run: docker-compose build
-    - name: Push the Docker Image
-      run: docker-compose push
     - name: Tag and Push Master Version
       run: |
         docker tag germey/proxypool germey/proxypool:master
