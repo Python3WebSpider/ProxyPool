@@ -83,6 +83,7 @@ proxypool    | 2020-02-19 17:09:46,596 INFO success: tester entered RUNNING stat
 export REDIS_HOST='localhost'
 export REDIS_PORT=6379
 export REDIS_PASSWORD=''
+export REDIS_DB=0
 ```
 
 或者只设置连接字符串：
@@ -91,7 +92,13 @@ export REDIS_PASSWORD=''
 export REDIS_CONNECTION_STRING='redis://[password]@host:port/db'
 ```
 
-这里连接字符串的格式需要符合 `redis://[password]@host:port/db` 的格式。
+如果没有密码也要设置为：
+
+```shell script
+export REDIS_CONNECTION_STRING='redis://@host:port/db'
+```
+
+这里连接字符串的格式需要符合 `redis://[password]@host:port/db` 的格式，注意不要遗漏 `@`。
 
 以上两种设置任选其一即可。
 
