@@ -33,6 +33,7 @@ class Getter(object):
         if self.is_full():
             return
         for crawler in self.crawlers:
+            logger.info(f'crawler {crawler} to get proxy')
             for proxy in crawler.crawl():
                 self.redis.add(proxy)
 
