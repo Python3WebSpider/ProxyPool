@@ -16,7 +16,7 @@
 
 ## 运行示例
 
-API Server 可以见[部署样例](https://universal.proxypool.cuiqingcai.com/)，随机代理[取用地址](https://universal.proxypool.cuiqingcai.com/random)，代理源比较少，仅供演示。
+API Server 可以见[部署样例](https://proxypool.scrape.center/)，随机代理[取用地址](https://proxypool.scrape.center/random)，代理源比较少，仅供演示。
 
 本样例为 GitHub Actions + Kubernetes 自动部署 master 分支代码结果。
 
