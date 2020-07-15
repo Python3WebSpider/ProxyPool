@@ -1,1 +1,1 @@
-from .empty import PoolEmptyException
+from .error import PoolEmptyException, InvalidProxyException

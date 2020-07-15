@@ -5,3 +5,13 @@ class PoolEmptyException(Exception):
         :return:
         """
         return repr('no proxy in proxypool')
+
+
+class InvalidProxyException(Exception):
+    def __str__(self):
+        """
+        proxy is invalid
+        :return:
+        """
+        return repr('proxy is invalid')
+

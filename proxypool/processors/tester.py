@@ -6,6 +6,7 @@ from proxypool.storages.redis import RedisClient
 from proxypool.setting import TEST_TIMEOUT, TEST_BATCH, TEST_URL, TEST_VALID_STATUS, TEST_ANONYMOUS
 from aiohttp import ClientProxyConnectionError, ServerDisconnectedError, ClientOSError, ClientHttpProxyError
 from asyncio import TimeoutError
+from proxypool.exceptions import InvalidProxyException
 
 
 EXCEPTIONS = (
@@ -58,8 +59,7 @@ class Tester(object):
                         self.redis.max(proxy)
                         logger.debug(f'proxy {proxy.string()} is valid, set max score')
                     else:
-                        self.redis.decrease(proxy)
-                        logger.debug(f'proxy {proxy.string()} is invalid, decrease score')
+                        raise InvalidProxyException
             except EXCEPTIONS:
                 self.redis.decrease(proxy)
                 logger.debug(f'proxy {proxy.string()} is invalid, decrease score')
