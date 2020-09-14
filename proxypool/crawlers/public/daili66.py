@@ -28,5 +28,5 @@ class Daili66Crawler(BaseCrawler):
 
 if __name__ == '__main__':
     crawler = Daili66Crawler()
-    for proxy in crawler.crawl():
+    for proxy in crawler.run():
         print(proxy)

@@ -38,4 +38,4 @@ class BaseCrawler(object):
             return proxies
 
     def run(self):
-        return  self.loop.run_until_complete(self.crawl())
+        return self.loop.run_until_complete(self.crawl())

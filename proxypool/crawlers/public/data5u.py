@@ -45,5 +45,5 @@ class Data5UCrawler(BaseCrawler):
 
 if __name__ == '__main__':
     crawler = Data5UCrawler()
-    for proxy in crawler.crawl():
+    for proxy in crawler.run():
         print(proxy)
