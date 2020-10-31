@@ -65,9 +65,9 @@ proxypool    | 2020-02-19 17:09:46,596 INFO success: tester entered RUNNING stat
 
 这时候访问 [http://localhost:5555/random](http://localhost:5555/random) 即可获取一个随机可用代理。
 
-如果下载速度特别慢，可以自行修改 Dockerfile，修改改行：
+如果下载速度特别慢，可以自行修改 Dockerfile，修改：
 
-```
+```diff
 - RUN pip install -r requirements.txt
 + RUN pip install -r requirements.txt -i https://pypi.douban.com/simple
 ```
