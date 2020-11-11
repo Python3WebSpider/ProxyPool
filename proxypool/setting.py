@@ -13,7 +13,7 @@ IS_WINDOWS = platform.system().lower() == 'windows'
 
 # definition of dirs
 ROOT_DIR = dirname(dirname(abspath(__file__)))
-LOG_DIR = join(ROOT_DIR, env.str('LOG_DIR', 'logs'))
+LOG_DIR = join(ROOT_DIR, env.str('LOG_DIR', 'Logs'))
 
 # definition of environments
 DEV_MODE, TEST_MODE, PROD_MODE = 'dev', 'test', 'prod'
