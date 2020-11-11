@@ -1,21 +1,18 @@
+import re
+from loguru import logger
 from pyquery import PyQuery as pq
 from proxypool.schemas.proxy import Proxy
 from proxypool.crawlers.base import BaseCrawler
-from loguru import logger
-import re
-
 
 BASE_URL = 'https://www.zdaye.com/dayProxy/{page}.html'
 MAX_PAGE = 5
+
 
 class ZhandayeCrawler(BaseCrawler):
     """
     zhandaye crawler, https://www.zdaye.com/dayProxy/
     """
     urls_catalog = [BASE_URL.format(page=page) for page in range(1, MAX_PAGE)]
-    headers = {
-        'User-Agent': 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.61 Safari/537.36'
-    }
     urls = []
     ignore = True
 
@@ -26,7 +23,7 @@ class ZhandayeCrawler(BaseCrawler):
     def crawl_catalog(self):
         for url in self.urls_catalog:
             logger.info(f'fetching {url}')
-            html = self.fetch(url, headers=self.headers)
+            html = self.fetch(url)
             self.parse_catalog(html)
 
     def parse_catalog(self, html):
@@ -40,7 +37,8 @@ class ZhandayeCrawler(BaseCrawler):
             logger.info(f'get detail url: {url}')
             self.urls.append(url)
 
-    def parse(self, html):
+    @staticmethod
+    def parse(html):
         doc = pq(html)
         trs = doc('.cont br').items()
         for tr in trs:
@@ -56,4 +54,3 @@ if __name__ == '__main__':
     crawler = ZhandayeCrawler()
     for proxy in crawler.crawl():
         print(proxy)
-

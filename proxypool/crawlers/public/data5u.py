@@ -1,7 +1,7 @@
+from loguru import logger
 from pyquery import PyQuery as pq
 from proxypool.schemas.proxy import Proxy
 from proxypool.crawlers.base import BaseCrawler
-from loguru import logger
 
 BASE_URL = 'http://www.data5u.com'
 
@@ -11,10 +11,6 @@ class Data5UCrawler(BaseCrawler):
     data5u crawler, http://www.data5u.com
     """
     urls = [BASE_URL]
-    
-    headers = {
-        'User-Agent': 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.61 Safari/537.36'
-    }
 
     @logger.catch
     def crawl(self):
@@ -23,12 +19,13 @@ class Data5UCrawler(BaseCrawler):
         """
         for url in self.urls:
             logger.info(f'fetching {url}')
-            html = self.fetch(url, headers=self.headers)
+            html = self.fetch(url)
             for proxy in self.parse(html):
                 logger.info(f'fetched proxy {proxy.string()} from {url}')
                 yield proxy
-    
-    def parse(self, html):
+
+    @staticmethod
+    def parse(html):
         """
         parse html file to get proxies
         :return:

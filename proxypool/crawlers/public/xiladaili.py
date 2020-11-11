@@ -1,6 +1,6 @@
+from lxml import etree
 from proxypool.schemas.proxy import Proxy
 from proxypool.crawlers.base import BaseCrawler
-from lxml import etree
 
 BASE_URL = "http://www.xiladaili.com/"
 MAX_PAGE = 5
@@ -12,7 +12,8 @@ class XiladailiCrawler(BaseCrawler):
     """
     urls = ["http://www.xiladaili.com/"]
 
-    def parse(self, html):
+    @staticmethod
+    def parse(html):
         """
         parse html file to get proxies
         :return:

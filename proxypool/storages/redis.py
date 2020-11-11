@@ -1,13 +1,13 @@
 import redis
 from proxypool.exceptions import PoolEmptyException
 from proxypool.schemas.proxy import Proxy
-from proxypool.setting import REDIS_HOST, REDIS_PORT, REDIS_PASSWORD, REDIS_DB, REDIS_KEY, PROXY_SCORE_MAX, PROXY_SCORE_MIN, \
+from proxypool.setting import REDIS_HOST, REDIS_PORT, REDIS_PASSWORD, REDIS_DB, REDIS_KEY, PROXY_SCORE_MAX, \
+    PROXY_SCORE_MIN, \
     PROXY_SCORE_INIT
 from random import choice
 from typing import List
 from loguru import logger
 from proxypool.utils.proxy import is_valid_proxy, convert_proxy_or_proxies
-
 
 REDIS_CLIENT_VERSION = redis.__version__
 IS_REDIS_VERSION_2 = REDIS_CLIENT_VERSION.startswith('2.')
@@ -125,4 +125,3 @@ if __name__ == '__main__':
     conn = RedisClient()
     result = conn.random()
     print(result)
-

@@ -69,7 +69,13 @@ proxypool    | 2020-02-19 17:09:46,596 INFO success: tester entered RUNNING stat
 
 ```diff
 - RUN pip install -r requirements.txt
-+ RUN pip install -r requirements.txt -i https://pypi.douban.com/simple
++ RUN pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple/
+```
+
+如果包`cchardet`安装失败请使用清华源安装
+
+```sh
+pip install cchardet -i https://pypi.tuna.tsinghua.edu.cn/simple/
 ```
 
 ## 常规方式运行
@@ -304,7 +310,8 @@ class Daili66Crawler(BaseCrawler):
     """
     urls = [BASE_URL.format(page=page) for page in range(1, MAX_PAGE + 1)]
     
-    def parse(self, html):
+    @staticmethod
+    def parse(html):
         """
         parse html file to get proxies
         :return:

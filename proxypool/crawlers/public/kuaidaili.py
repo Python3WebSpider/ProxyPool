@@ -1,11 +1,9 @@
-from proxypool.crawlers.base import BaseCrawler
-from proxypool.schemas.proxy import Proxy
-import re
 from pyquery import PyQuery as pq
-
+from proxypool.schemas.proxy import Proxy
+from proxypool.crawlers.base import BaseCrawler
 
 BASE_URL = 'https://www.kuaidaili.com/free/inha/{page}/'
-MAX_PAGE = 5
+MAX_PAGE = 10
 
 
 class KuaidailiCrawler(BaseCrawler):
@@ -13,8 +11,9 @@ class KuaidailiCrawler(BaseCrawler):
     kuaidaili crawler, https://www.kuaidaili.com/
     """
     urls = [BASE_URL.format(page=page) for page in range(1, MAX_PAGE + 1)]
-    
-    def parse(self, html):
+
+    @staticmethod
+    def parse(html):
         """
         parse html file to get proxies
         :return:
