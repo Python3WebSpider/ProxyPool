@@ -62,7 +62,8 @@ TEST_BATCH = env.int('TEST_BATCH', 20)
 # only save anonymous proxy
 TEST_ANONYMOUS = True
 # TEST_HEADERS = env.json('TEST_HEADERS', {
-#     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.71 Safari/537.36',
+#     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/
+#     537.36 (KHTML, like Gecko) Chrome/54.0.2840.71 Safari/537.36',
 # })
 TEST_VALID_STATUS = env.list('TEST_VALID_STATUS', [200, 206, 302])
 
@@ -76,6 +77,7 @@ ENABLE_TESTER = env.bool('ENABLE_TESTER', True)
 ENABLE_GETTER = env.bool('ENABLE_GETTER', True)
 ENABLE_SERVER = env.bool('ENABLE_SERVER', True)
 
-logger.add(env.str('LOG_RUNTIME_FILE', join(LOG_DIR, 'runtime.log')), level='DEBUG', rotation='1 week', retention='20 days')
+# Log settings
+logger.add(env.str('LOG_RUNTIME_FILE', join(LOG_DIR, 'runtime.log')),
+           level='DEBUG', rotation='1 week', retention='20 days')
 logger.add(env.str('LOG_ERROR_FILE', join(LOG_DIR, 'error.log')), level='ERROR', rotation='1 week')
-

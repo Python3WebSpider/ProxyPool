@@ -14,7 +14,7 @@ if IS_WINDOWS:
 tester_process, getter_process, server_process = None, None, None
 
 
-class Scheduler():
+class Scheduler:
     """
     scheduler
     """
