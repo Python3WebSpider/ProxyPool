@@ -6,7 +6,7 @@ from proxypool.crawlers import __all__ as crawlers_cls
 
 class Getter(object):
     """
-    getter of proxypool
+    getter of proxyPool
     """
     
     def __init__(self):
@@ -19,7 +19,7 @@ class Getter(object):
     
     def is_full(self):
         """
-        if proxypool if full
+        if proxyPool if full
         return: bool
         """
         return self.redis.count() >= PROXY_NUMBER_MAX

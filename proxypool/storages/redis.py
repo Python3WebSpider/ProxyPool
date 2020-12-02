@@ -1,13 +1,12 @@
 import redis
-from proxypool.exceptions import PoolEmptyException
-from proxypool.schemas.proxy import Proxy
-from proxypool.setting import REDIS_HOST, REDIS_PORT, REDIS_PASSWORD, REDIS_DB, REDIS_KEY, PROXY_SCORE_MAX, \
-    PROXY_SCORE_MIN, \
-    PROXY_SCORE_INIT
-from random import choice
 from typing import List
+from random import choice
 from loguru import logger
+from proxypool.schemas.proxy import Proxy
+from proxypool.exceptions import PoolEmptyException
 from proxypool.utils.proxy import is_valid_proxy, convert_proxy_or_proxies
+from proxypool.setting import REDIS_HOST, REDIS_PORT, REDIS_PASSWORD, REDIS_DB, REDIS_KEY, PROXY_SCORE_MAX, \
+    PROXY_SCORE_MIN, PROXY_SCORE_INIT
 
 REDIS_CLIENT_VERSION = redis.__version__
 IS_REDIS_VERSION_2 = REDIS_CLIENT_VERSION.startswith('2.')
@@ -15,7 +14,7 @@ IS_REDIS_VERSION_2 = REDIS_CLIENT_VERSION.startswith('2.')
 
 class RedisClient(object):
     """
-    redis connection client of proxypool
+    redis connection client of proxyPool
     """
 
     def __init__(self, host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWORD, db=REDIS_DB, **kwargs):
@@ -27,7 +26,7 @@ class RedisClient(object):
         """
         self.db = redis.StrictRedis(host=host, port=port, password=password, db=db, decode_responses=True, **kwargs)
 
-    def add(self, proxy: Proxy, score=PROXY_SCORE_INIT) -> int:
+    def add(self, proxy: Proxy, score=PROXY_SCORE_INIT):
         """
         add proxy and set it to init score
         :param proxy: proxy, ip:port, like 8.8.8.8:88
@@ -61,7 +60,7 @@ class RedisClient(object):
         # else raise error
         raise PoolEmptyException
 
-    def decrease(self, proxy: Proxy) -> int:
+    def decrease(self, proxy: Proxy):
         """
         decrease score of proxy, if small than PROXY_SCORE_MIN, delete it
         :param proxy: proxy
@@ -110,7 +109,7 @@ class RedisClient(object):
         """
         return convert_proxy_or_proxies(self.db.zrangebyscore(REDIS_KEY, PROXY_SCORE_MIN, PROXY_SCORE_MAX))
 
-    def batch(self, cursor, count) -> List[Proxy]:
+    def batch(self, cursor, count):
         """
         get batch of proxies
         :param cursor: scan cursor

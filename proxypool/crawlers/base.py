@@ -10,14 +10,13 @@ class BaseCrawler(object):
     urls = []
 
     @retry(stop_max_attempt_number=3, retry_on_result=lambda x: x is None, wait_fixed=2000)
-    def fetch(self, url, method=None, header=None, **kwargs):
-        _method = "GET" if not method else method
-        _header = {'User-Agent': ua()} if not header else header
+    def fetch(self, url, **kwargs):
+        _method = "GET"
+        _header = {'User-Agent': ua()}
         try:
             kwargs.setdefault('timeout', GET_TIMEOUT)
             kwargs.setdefault('verify', False)
             response = request(method=_method, url=url, headers=_header, **kwargs)
-            print(_header)
             encoding = cchardet.detect(response.content)['encoding']
             if response.status_code == 200:
                 return response.content.decode(encoding)
