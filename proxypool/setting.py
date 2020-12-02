@@ -1,7 +1,7 @@
 import platform
-from os.path import dirname, abspath, join
 from environs import Env
 from loguru import logger
+from os.path import dirname, abspath, join
 from proxypool.utils.parse import parse_redis_connection_string
 
 

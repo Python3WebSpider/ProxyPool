@@ -10,3 +10,4 @@ supervisor==4.1.0
 redis==2.10.6
 lxml==4.3.3
 cchardet==3.0.4
+parsel==1.6.0
