@@ -1,4 +1,3 @@
-from pyquery import PyQuery as pq
 from proxypool.schemas.proxy import Proxy
 from proxypool.crawlers.base import BaseCrawler
 import re
@@ -7,7 +6,7 @@ MAX_NUM = 9999
 BASE_URL = 'http://api.89ip.cn/tqdl.html?api=1&num={MAX_NUM}&port=&address=&isp='.format(MAX_NUM=MAX_NUM)
 
 
-class Daili66Crawler(BaseCrawler):
+class Ip89Crawler(BaseCrawler):
     """
     89ip crawler, http://api.89ip.cn
     """
@@ -29,6 +28,6 @@ class Daili66Crawler(BaseCrawler):
 
 
 if __name__ == '__main__':
-    crawler = Daili66Crawler()
+    crawler = Ip89Crawler()
     for proxy in crawler.crawl():
         print(proxy)
