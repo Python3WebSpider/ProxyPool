@@ -8,4 +8,4 @@ loguru==0.3.2
 pyquery==1.4.0
 supervisor==4.1.0
 redis==2.10.6
-lxml==4.3.3
+lxml==4.6.2
