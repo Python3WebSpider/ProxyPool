@@ -45,7 +45,7 @@ class CrawlThread(threading.Thread):
             ''.join(str(uuid.uuid1()).split('-')))
         print(headers)
         html = requests.get(headers=headers, url=targetUrl, proxies={
-                            "http": 'http://' + self.proxyip, "https": 'https://' + self.proxyip}, verify=False, timeout=10).content.decode()
+                            "http": 'http://' + self.proxyip, "https": 'https://' + self.proxyip}, verify=False, timeout=8).content.decode()
         # 结束计时
         end = time.time()
         # 输出内容
