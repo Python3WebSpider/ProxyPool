@@ -26,7 +26,7 @@ APP_TEST = IS_TEST = APP_ENV == TEST_MODE
 # redis host
 REDIS_HOST = env.str('REDIS_HOST', '127.0.0.1')
 # redis port
-REDIS_PORT = env.int('REDIS_PORT', 6379)
+REDIS_PORT = env.int('REDIS_PORT', 6378)
 # redis password, if no password, set it to None
 REDIS_PASSWORD = env.str('REDIS_PASSWORD', None)
 # redis db, if no choice, set it to 0
@@ -42,7 +42,7 @@ REDIS_KEY = env.str('REDIS_KEY', 'proxies:universal')
 
 # definition of proxy scores
 PROXY_SCORE_MAX = 100
-PROXY_SCORE_MIN = 0
+PROXY_SCORE_MIN = 15
 PROXY_SCORE_INIT = 10
 
 # definition of proxy number
@@ -57,8 +57,8 @@ GET_TIMEOUT = env.int('GET_TIMEOUT', 10)
 
 # definition of tester
 TEST_URL = env.str('TEST_URL', 'http://www.baidu.com')
-TEST_TIMEOUT = env.int('TEST_TIMEOUT', 10)
-TEST_BATCH = env.int('TEST_BATCH', 20)
+TEST_TIMEOUT = env.int('TEST_TIMEOUT', 8)
+TEST_BATCH = env.int('TEST_BATCH', 200)
 # only save anonymous proxy
 TEST_ANONYMOUS = True
 # TEST_HEADERS = env.json('TEST_HEADERS', {
@@ -68,7 +68,7 @@ TEST_VALID_STATUS = env.list('TEST_VALID_STATUS', [200, 206, 302])
 
 # definition of api
 API_HOST = env.str('API_HOST', '0.0.0.0')
-API_PORT = env.int('API_PORT', 5555)
+API_PORT = env.int('API_PORT', 5556)
 API_THREADED = env.bool('API_THREADED', True)
 
 # flags of enable

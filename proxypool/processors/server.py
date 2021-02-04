@@ -37,6 +37,21 @@ def get_proxy():
     return conn.random().string()
 
 
+@app.route('/all')
+def get_proxy_all():
+    """
+    get a random proxy
+    :return: get a random proxy
+    """
+    conn = get_conn()
+    proxies = conn.all()
+    proxies_string = ''
+    for proxy in proxies:
+        proxies_string += str(proxy) + '\n'
+
+    return proxies_string
+
+
 @app.route('/count')
 def get_count():
     """
