@@ -4,15 +4,15 @@ import re
 from pyquery import PyQuery as pq
 
 
-BASE_URL = 'https://www.kuaidaili.com/free/inha/{page}/'
-MAX_PAGE = 5
+BASE_URL = 'https://www.kuaidaili.com/free/{type}/{page}/'
+MAX_PAGE = 300
 
 
 class KuaidailiCrawler(BaseCrawler):
     """
     kuaidaili crawler, https://www.kuaidaili.com/
     """
-    urls = [BASE_URL.format(page=page) for page in range(1, MAX_PAGE + 1)]
+    urls = [BASE_URL.format(type=type,page=page)  for type in ('intr','inha') for page in range(1, MAX_PAGE + 1)]
     
     def parse(self, html):
         """

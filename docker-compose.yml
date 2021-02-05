@@ -6,7 +6,7 @@ services:
     command: redis-server
     ports:
       - "6378:6379"
-  #    restart: always
+    restart: always
   proxypool:
     build: .
     image: 'germey/proxypool'

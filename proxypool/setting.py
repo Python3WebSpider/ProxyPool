@@ -26,7 +26,7 @@ APP_TEST = IS_TEST = APP_ENV == TEST_MODE
 # redis host
 REDIS_HOST = env.str('REDIS_HOST', '127.0.0.1')
 # redis port
-REDIS_PORT = env.int('REDIS_PORT', 6378)
+REDIS_PORT = env.int('REDIS_PORT', 6379)
 # redis password, if no password, set it to None
 REDIS_PASSWORD = env.str('REDIS_PASSWORD', None)
 # redis db, if no choice, set it to 0
@@ -68,7 +68,7 @@ TEST_VALID_STATUS = env.list('TEST_VALID_STATUS', [200, 206, 302])
 
 # definition of api
 API_HOST = env.str('API_HOST', '0.0.0.0')
-API_PORT = env.int('API_PORT', 5556)
+API_PORT = env.int('API_PORT', 5555)
 API_THREADED = env.bool('API_THREADED', True)
 
 # flags of enable

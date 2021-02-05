@@ -19,8 +19,8 @@ class FatezeroCrawler(BaseCrawler):
         
         hosts_ports = html.split('\n')
         for addr in hosts_ports:
-            ip_address = json.loads(addr)
-            if(True):
+            if(addr):
+                ip_address = json.loads(addr)
                 host = ip_address['host']
                 port = ip_address['port']
                 yield Proxy(host=host, port=port)

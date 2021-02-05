@@ -29,9 +29,10 @@ class CrawlThread(threading.Thread):
 
     def run(self):
         # 开始计时
-
+        pure_ip_address = self.proxyip.split(':')[0]
         # 验证IP归属
-        if not getChinaIP(self.proxyip.split(':')[0]):
+        if not getChinaIP(pure_ip_address):
+            # pass
             raise ValueError('不是有效IP')
         # 
         start = time.time()
@@ -41,11 +42,12 @@ class CrawlThread(threading.Thread):
         headers['Referer'] = 'http://bb.cf08tp.cn/Home/index.php?m=Index&a=index&id=2676'
         headers['Pragma'] = 'no-cache'
         headers['Host'] = 'bb.cf08tp.cn'
+        headers['x-forward-for'] = pure_ip_address
         headers['Cookie'] = 'PHPSESSID={}'.format(
             ''.join(str(uuid.uuid1()).split('-')))
         print(headers)
         html = requests.get(headers=headers, url=targetUrl, proxies={
-                            "http": 'http://' + self.proxyip, "https": 'https://' + self.proxyip}, verify=False, timeout=8).content.decode()
+                            "http": 'http://' + self.proxyip, "https": 'https://' + self.proxyip}, verify=False, timeout=2).content.decode()
         # 结束计时
         end = time.time()
         # 输出内容
@@ -74,16 +76,16 @@ class GetIpThread(threading.Thread):
                     # CrawlThread(proxyip).start()
                     try:
                         CrawlThread(proxyip).run()
-                        time.sleep(3)
+                        time.sleep(1.5)
                     except Exception as e:
                         print(e)
             # 休眠
-            time.sleep(self.fetchSecond)
+            time.sleep(len(ips) /self.fetchSecond )
 
 
 if __name__ == '__main__':
     # 获取IP的API接口
-    # apiUrl = "http://127.0.0.1:5556/all"
+    # apiUrl = "http://127.0.0.1:5555/all"
     apiUrl = "http://127.0.0.1:5555/random"
     # 要抓取的目标网站地址
     targetUrl = "http://bb.cf08tp.cn/Home/index.php?m=Index&a=vote&vid=335688&id=2676&tp="
