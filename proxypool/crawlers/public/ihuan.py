@@ -10,8 +10,10 @@ class IhuanCrawler(BaseCrawler):
     """
     ip  ihuan crawler, https://ip.ihuan.me
     """
-    urls = [BASE_URL.format(path=time.strftime("%Y/%m/%d/%H", time.localtime()))]
-    
+    path = time.strftime("%Y/%m/%d/%H", time.localtime())
+    urls = [BASE_URL.format(path=path)]
+    ignore = True
+
     def parse(self, html):
         """
         parse html file to get proxies
