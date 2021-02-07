@@ -42,7 +42,7 @@ REDIS_KEY = env.str('REDIS_KEY', 'proxies:universal')
 
 # definition of proxy scores
 PROXY_SCORE_MAX = 100
-PROXY_SCORE_MIN = 10
+PROXY_SCORE_MIN = 0
 PROXY_SCORE_INIT = 10
 
 # definition of proxy number
@@ -57,8 +57,8 @@ GET_TIMEOUT = env.int('GET_TIMEOUT', 10)
 
 # definition of tester
 TEST_URL = env.str('TEST_URL', 'http://www.baidu.com')
-TEST_TIMEOUT = env.int('TEST_TIMEOUT', 8)
-TEST_BATCH = env.int('TEST_BATCH', 200)
+TEST_TIMEOUT = env.int('TEST_TIMEOUT', 10)
+TEST_BATCH = env.int('TEST_BATCH', 20)
 # only save anonymous proxy
 TEST_ANONYMOUS = True
 # TEST_HEADERS = env.json('TEST_HEADERS', {
@@ -76,6 +76,5 @@ ENABLE_TESTER = env.bool('ENABLE_TESTER', True)
 ENABLE_GETTER = env.bool('ENABLE_GETTER', True)
 ENABLE_SERVER = env.bool('ENABLE_SERVER', True)
 
-logger.add(env.str('LOG_RUNTIME_FILE', join(LOG_DIR, 'runtime.log')), level='DEBUG', rotation='1 week', retention='20 days')
-logger.add(env.str('LOG_ERROR_FILE', join(LOG_DIR, 'error.log')), level='ERROR', rotation='1 week')
-
+# logger.add(env.str('LOG_RUNTIME_FILE', join(LOG_DIR, 'runtime.log')), level='DEBUG', rotation='1 week', retention='20 days')
+# logger.add(env.str('LOG_ERROR_FILE', join(LOG_DIR, 'error.log')), level='ERROR', rotation='1 week')
