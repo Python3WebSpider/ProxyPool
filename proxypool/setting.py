@@ -78,3 +78,4 @@ ENABLE_SERVER = env.bool('ENABLE_SERVER', True)
 
 # logger.add(env.str('LOG_RUNTIME_FILE', join(LOG_DIR, 'runtime.log')), level='DEBUG', rotation='1 week', retention='20 days')
 # logger.add(env.str('LOG_ERROR_FILE', join(LOG_DIR, 'error.log')), level='ERROR', rotation='1 week')
+

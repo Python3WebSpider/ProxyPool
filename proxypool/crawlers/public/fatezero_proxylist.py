@@ -25,7 +25,6 @@ class FatezeroCrawler(BaseCrawler):
                 port = ip_address['port']
                 yield Proxy(host=host, port=port)
 
-
 if __name__ == '__main__':
     crawler = FatezeroCrawler()
     for proxy in crawler.crawl():
