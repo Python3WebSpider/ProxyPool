@@ -1,32 +1,41 @@
+import asyncio
+import aiohttp
 from retrying import retry
-import requests
 from loguru import logger
 from proxypool.setting import GET_TIMEOUT
 
 
 class BaseCrawler(object):
     urls = []
-    
+
+    def __init__(self):
+        self.loop = asyncio.get_event_loop()
+
     @retry(stop_max_attempt_number=3, retry_on_result=lambda x: x is None, wait_fixed=2000)
-    def fetch(self, url, **kwargs):
+    async def fetch(self, session, url, **kwargs):
         try:
             kwargs.setdefault('timeout', GET_TIMEOUT)
-            kwargs.setdefault('verify', False)
-            response = requests.get(url, **kwargs)
-            if response.status_code == 200:
-                response.encoding = 'utf-8'
-                return response.text
-        except requests.ConnectionError:
+            async with session.get(url, **kwargs) as response:
+                if response.status == 200:
+                    response.encoding = 'utf-8'
+                    return await response.text()
+        except aiohttp.ClientConnectionError:
             return
-    
+
     @logger.catch
-    def crawl(self):
+    async def crawl(self):
         """
         crawl main method
         """
-        for url in self.urls:
-            logger.info(f'fetching {url}')
-            html = self.fetch(url)
-            for proxy in self.parse(html):
-                logger.info(f'fetched proxy {proxy.string()} from {url}')
-                yield proxy
+        proxies = []
+        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False)) as session:
+            tasks = [self.fetch(session, url) for url in self.urls]
+            results = await asyncio.gather(*tasks)
+            for result in results:
+                if result:
+                    for proxy in self.parse(result):
+                        proxies.append(proxy)
+            return proxies
+
+    def run(self):
+        return self.loop.run_until_complete(self.crawl())
