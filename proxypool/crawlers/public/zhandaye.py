@@ -6,7 +6,7 @@ import re
 
 
 BASE_URL = 'https://www.zdaye.com/dayProxy/{page}.html'
-MAX_PAGE = 5
+MAX_PAGE = 5 * 2
 
 class ZhandayeCrawler(BaseCrawler):
     """

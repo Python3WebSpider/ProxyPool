@@ -84,7 +84,14 @@ class Tester(object):
             if not cursor:
                 break
 
+def run_tester():
+    host = '96.113.165.182'
+    port = '3128'
+    tasks = [tester.test(Proxy(host=host, port=port))]
+    tester.loop.run_until_complete(asyncio.wait(tasks))
 
 if __name__ == '__main__':
     tester = Tester()
     tester.run()
+    # run_tester()
+
