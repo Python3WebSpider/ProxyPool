@@ -2,7 +2,7 @@ environs==9.3.0
 Flask==1.1.2
 attrs==20.3.0
 retrying==1.3.3
-aiohttp==3.7.3
+aiohttp==3.7.4
 requests==2.25.1
 loguru==0.5.3
 pyquery==1.4.3
