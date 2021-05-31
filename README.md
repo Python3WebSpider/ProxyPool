@@ -14,12 +14,6 @@
 
 代理池原理解析可见「[如何搭建一个高效的代理池](https://cuiqingcai.com/7048.html)」，建议使用之前阅读。
 
-## 运行示例
-
-API Server 可以见[部署样例](https://proxypool.scrape.center/)，随机代理[取用地址](https://proxypool.scrape.center/random)，代理源比较少，仅供演示。
-
-本样例为 GitHub Actions + Kubernetes 自动部署 master 分支代码结果。
-
 ## 使用准备
 
 首先当然是克隆代码并进入 ProxyPool 文件夹：
