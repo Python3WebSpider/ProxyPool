@@ -20,9 +20,20 @@ API Server 可以见[部署样例](https://proxypool.scrape.center/)，随机代
 
 本样例为 GitHub Actions + Kubernetes 自动部署 master 分支代码结果。
 
+## 使用准备
+
+首先当然是克隆代码并进入 ProxyPool 文件夹：
+
+```
+git clone https://github.com/Python3WebSpider/ProxyPool.git
+cd ProxyPool
+```
+
+然后选用下面 Docker 和常规方式任意一个执行即可。
+
 ## 使用要求
 
-可以通过两种方式来运行代理池，一种方式是使用 Docker（推荐），另一种方式是常规方式运行。
+可以通过两种方式来运行代理池，一种方式是使用 Docker（推荐），另一种方式是常规方式运行，要求如下：
 
 ### Docker
 
@@ -30,6 +41,8 @@ API Server 可以见[部署样例](https://proxypool.scrape.center/)，随机代
 
 * Docker
 * Docker-Compose
+
+安装方法自行搜索即可。
 
 ### 常规方式
 
