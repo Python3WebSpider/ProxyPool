@@ -17,7 +17,7 @@ def getChinaIP(ip='127.0.0.1'):
     reader = geolite2.reader()
     ip_info = reader.get(ip)
     geolite2.close()
-    # print(ip_info)
+    print(ip_info)
     return True if ip_info['country']['iso_code'] == 'CN' else False
 
 
@@ -32,8 +32,8 @@ class CrawlThread(threading.Thread):
         pure_ip_address = self.proxyip.split(':')[0]
         # 验证IP归属
         if not getChinaIP(pure_ip_address):
-            pass
-            # raise ValueError('不是有效IP')
+            # pass
+            raise ValueError('不是有效IP')
         # 
         start = time.time()
         # 消除关闭证书验证的警告
@@ -88,8 +88,8 @@ if __name__ == '__main__':
     # apiUrl = "http://127.0.0.1:5555/all"
     apiUrl = "http://127.0.0.1:5555/random"
     # 要抓取的目标网站地址
-    # targetUrl = "http://bb.cf08tp.cn/Home/index.php?m=Index&a=vote&vid=335688&id=2676&tp="
-    targetUrl = 'http://www.so.com'
+    targetUrl = "http://bb.cf08tp.cn/Home/index.php?m=Index&a=vote&vid=335688&id=2676&tp="
+    # targetUrl = 'http://bb.cf08tp.cn/Home/index.php?m=Index&a=vote&vid=335608&id=2676&tp='
     fetchSecond = 5
     # 开始自动获取IP
     GetIpThread(fetchSecond).start()

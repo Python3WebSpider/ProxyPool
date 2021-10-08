@@ -1,15 +1,14 @@
-version: '3'
+version: "3"
 services:
   redis4proxypool:
     image: redis:alpine
     container_name: redis4proxypool
-    command: redis-server
     ports:
-      - "6378:6379"
+      - "6374:6379"
     # restart: always
   proxypool:
     build: .
-    image: 'germey/proxypool'
+    image: "germey/proxypool"
     container_name: proxypool
     ports:
       - "5555:5555"
