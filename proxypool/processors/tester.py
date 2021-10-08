@@ -6,7 +6,7 @@ from proxypool.storages.redis import RedisClient
 from proxypool.setting import TEST_TIMEOUT, TEST_BATCH, TEST_URL, TEST_VALID_STATUS, TEST_ANONYMOUS
 from aiohttp import ClientProxyConnectionError, ServerDisconnectedError, ClientOSError, ClientHttpProxyError
 from asyncio import TimeoutError
-
+import requests
 
 EXCEPTIONS = (
     ClientProxyConnectionError,
@@ -43,7 +43,7 @@ class Tester(object):
                 # if TEST_ANONYMOUS is True, make sure that
                 # the proxy has the effect of hiding the real IP
                 if TEST_ANONYMOUS:
-                    url = 'https://httpbin.org/ip'
+                    url = 'http://www.nghttp2.org/httpbin/ip'
                     async with session.get(url, timeout=TEST_TIMEOUT) as response:
                         resp_json = await response.json()
                         origin_ip = resp_json['origin']
@@ -85,8 +85,8 @@ class Tester(object):
                 break
 
 def run_tester():
-    host = '96.113.165.182'
-    port = '3128'
+    host = '111.246.42.52'
+    port = '8888'
     tasks = [tester.test(Proxy(host=host, port=port))]
     tester.loop.run_until_complete(asyncio.wait(tasks))
 

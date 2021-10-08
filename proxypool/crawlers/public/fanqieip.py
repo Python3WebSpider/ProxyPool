@@ -2,15 +2,15 @@ from proxypool.schemas.proxy import Proxy
 from proxypool.crawlers.base import BaseCrawler
 from pyquery import PyQuery as pq
 
-BaseUrl = 'http://www.taiyanghttp.com/free/page{num}'
-MAX_PAGE = 5 * 2
+BaseUrl = 'https://www.fanqieip.com/free/{num}'
+MAX_PAGE = 5 * 100
 
 
-class TaiyangdailiCrawler(BaseCrawler):
+class FanqieIPCrawler(BaseCrawler):
     """
-    taiyangdaili crawler, http://www.taiyanghttp.com/free/
+    FanqieIP crawler, https://www.fanqieip.com
     """
-    urls = [BaseUrl.format(num=i) for i in range(1, 6)]
+    urls = [BaseUrl.format(num=i) for i in range(1, MAX_PAGE)]
 
     def parse(self, html):
         """
@@ -18,14 +18,14 @@ class TaiyangdailiCrawler(BaseCrawler):
         :return:
         """
         doc = pq(html)
-        trs = doc('#ip_list .tr.ip_tr').items()
+        trs = doc('.layui-table tbody tr ').items()
         for tr in trs:
-            host = tr.find('div:nth-child(1)').text()
-            port = tr.find('div:nth-child(2)').text()
+            host = tr.find('td div')[0].text
+            port = tr.find('td div')[1].text
             yield Proxy(host=host, port=port)
 
 
 if __name__ == '__main__':
-    crawler = TaiyangdailiCrawler()
+    crawler = FanqieIPCrawler()
     for proxy in crawler.crawl():
         print(proxy)

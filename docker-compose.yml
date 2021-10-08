@@ -5,7 +5,7 @@ services:
     container_name: redis4proxypool
     command: redis-server
     ports:
-      - "6379:6379"
+      - "6378:6379"
     # restart: always
   proxypool:
     build: .

@@ -39,13 +39,13 @@ class CrawlThread(threading.Thread):
         # 消除关闭证书验证的警告
         urllib3.disable_warnings()
         headers = Headers(headers=True).generate()
-        # headers['Referer'] = 'http://bb.cf08tp.cn/Home/index.php?m=Index&a=index&id=2676'
+        headers['Referer'] = 'http://ga.314300.cn/toupiao/user40.html'
         headers['Pragma'] = 'no-cache'
-        # headers['Host'] = 'bb.cf08tp.cn'
+        # headers['Host'] = 'ga.314300.cn'
         # headers['x-forward-for'] = pure_ip_address
-        headers['Cookie'] = 'PHPSESSID={}'.format(
-            ''.join(str(uuid.uuid1()).split('-')))
+        headers['Cookie'] = 'ASPSESSIONIDSAACBBBS=HOPLOAJDCHIIHBFNLIODPLJL'
         # print(headers)
+        headers['User-Agent'] = 'Mozilla/5.0 (Linux; U; Android 2.3.6; zh-cn; GT-S5660 Build/GINGERBREAD) AppleWebKit/533.1 (KHTML, like Gecko) Version/4.0 Mobile Safari/533.1 MicroMessenger/5.3'
         html = requests.get(headers=headers, url=targetUrl, proxies={
                             "http": 'http://' + self.proxyip}, verify=False, timeout=12).content.decode()
         # 结束计时
@@ -89,7 +89,7 @@ if __name__ == '__main__':
     apiUrl = "http://127.0.0.1:5555/random"
     # 要抓取的目标网站地址
     # targetUrl = "http://bb.cf08tp.cn/Home/index.php?m=Index&a=vote&vid=335688&id=2676&tp="
-    targetUrl = 'http://www.so.com'
+    targetUrl = 'http://ga.314300.cn/toupiao/json/?id=40&s=tp'
     fetchSecond = 5
     # 开始自动获取IP
     GetIpThread(fetchSecond).start()

@@ -103,12 +103,12 @@ class RedisClient(object):
         """
         return self.db.zcard(REDIS_KEY)
 
-    def all(self) -> List[Proxy]:
+    def all(self,min_score=PROXY_SCORE_MIN,max_score=PROXY_SCORE_MAX) -> List[Proxy]:
         """
         get all proxies
         :return: list of proxies
         """
-        return convert_proxy_or_proxies(self.db.zrangebyscore(REDIS_KEY, PROXY_SCORE_MIN, PROXY_SCORE_MAX))
+        return convert_proxy_or_proxies(self.db.zrangebyscore(REDIS_KEY, min_score,max_score))
 
     def batch(self, cursor, count) -> List[Proxy]:
         """
