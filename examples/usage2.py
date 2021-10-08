@@ -39,6 +39,7 @@ class CrawlThread(threading.Thread):
         # 消除关闭证书验证的警告
         urllib3.disable_warnings()
         headers = Headers(headers=True).generate()
+<<<<<<< HEAD
         # headers['Referer'] = 'http://bb.cf08tp.cn/Home/index.php?m=Index&a=index&id=2676'
         headers['Pragma'] = 'no-cache'
         # headers['Host'] = 'bb.cf08tp.cn'
@@ -48,6 +49,17 @@ class CrawlThread(threading.Thread):
         # print(headers)
         html = requests.get(headers=headers, url=targetUrl, proxies={
                             "http": 'http://' + self.proxyip}, verify=False, timeout=12).content.decode()
+=======
+        headers['Referer'] = 'http://bb.cf08tp.cn/Home/index.php?m=Index&a=index&id=2676'
+        headers['Pragma'] = 'no-cache'
+        headers['Host'] = 'bb.cf08tp.cn'
+        headers['x-forward-for'] = pure_ip_address
+        headers['Cookie'] = 'PHPSESSID={}'.format(
+            ''.join(str(uuid.uuid1()).split('-')))
+        print(headers)
+        html = requests.get(headers=headers, url=targetUrl, proxies={
+                            "http": 'http://' + self.proxyip, "https": 'https://' + self.proxyip}, verify=False, timeout=2).content.decode()
+>>>>>>> cb4cbc440e00a091773d985705d3f27b93a9213e
         # 结束计时
         end = time.time()
         # 输出内容
