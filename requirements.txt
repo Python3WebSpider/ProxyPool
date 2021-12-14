@@ -8,6 +8,6 @@ loguru==0.5.3
 pyquery==1.4.3
 supervisor==4.2.1
 redis==3.5.3
-lxml==4.6.3
+lxml==4.6.5
 fake_headers==1.0.2
 maxminddb_geolite2==2018.703
