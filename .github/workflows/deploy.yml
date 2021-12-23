@@ -35,7 +35,7 @@ jobs:
           echo $BUILD_NUMBER
       - name: Build Push Deploy
         run: |
-          docker-compose build
+          docker-compose -f build.yml build
           docker tag germey/proxypool germey/proxypool:$BUILD_NUMBER
           docker push germey/proxypool
           docker push germey/proxypool:$BUILD_NUMBER
