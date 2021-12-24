@@ -4,6 +4,11 @@
 
 首先需要有一个 Kubernetes 集群，其次需要安装 Helm，确保 helm 命令可以正常运行。
 
+安装参考：
+
+- Kubernetes：[https://setup.scrape.center/kubernetes](https://setup.scrape.center/kubernetes)。
+- Helm: [https://setup.scrape.center/helm](https://setup.scrape.center/helm)。
+
 ## 安装
 
 安装直接使用 helm 命令在本文件夹运行即可，使用 `-n` 可以制定 NameSpace。
