@@ -23,6 +23,14 @@ spec:
             - containerPort: 5555
               protocol: TCP
           imagePullPolicy: {{ .Values.deployment.imagePullPolicy }}
+          livenessProbe:
+            httpGet:
+              path: /random
+              port: 5555
+            initialDelaySeconds: 60
+            periodSeconds: 5
+            failureThreshold: 5
+            timeoutSeconds: 10
           resources:
             {{- toYaml .Values.deployment.resources | nindent 12 }}
           env:

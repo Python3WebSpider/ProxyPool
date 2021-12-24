@@ -1,4 +1,4 @@
-FROM nginx:alpine
+FROM alpine:3.7
 WORKDIR /app
 RUN apk add --no-cache --virtual .build-deps g++ python3-dev libffi-dev \
     openssl-dev libxml2-dev libxslt-dev gcc musl-dev py3-pip && \
