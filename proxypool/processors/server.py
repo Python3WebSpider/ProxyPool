@@ -1,6 +1,6 @@
-from flask import Flask, g
+from flask import Flask, g , request , jsonify
 from proxypool.storages.redis import RedisClient
-from proxypool.setting import API_HOST, API_PORT, API_THREADED
+from proxypool.setting import API_HOST, API_PORT, API_THREADED,PROXY_SCORE_MIN, PROXY_SCORE_MAX
 
 
 __all__ = ['app']
@@ -40,11 +40,12 @@ def get_proxy():
 @app.route('/all')
 def get_proxy_all():
     """
-    get a random proxy
-    :return: get a random proxy
+    get proxy by min_score to max_score
+    :return: proxies list
     """
+    args = request.args
     conn = get_conn()
-    proxies = conn.all()
+    proxies = conn.all(args.get('min_score',PROXY_SCORE_MIN),args.get('max_score',PROXY_SCORE_MAX))
     proxies_string = ''
     for proxy in proxies:
         proxies_string += str(proxy) + '\n'

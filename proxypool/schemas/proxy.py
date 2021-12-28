@@ -8,6 +8,12 @@ class Proxy(object):
     """
     host = attr(type=str, default=None)
     port = attr(type=int, default=None)
+    location = attr(type=str, default=None)
+    isp = attr(type=str, default=None)
+    country = attr(type=str, default=None)
+    anonymous = attr(type=bool, default=None)
+    protocol = attr(type=str, default=None)
+    alive_time = attr(type=int, default=None)
     
     def __str__(self):
         """
