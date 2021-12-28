@@ -1,4 +1,4 @@
-from retrying import retry
+from retrying import RetryError, retry
 import requests
 from loguru import logger
 from proxypool.setting import GET_TIMEOUT
@@ -23,15 +23,25 @@ class BaseCrawler(object):
         except requests.ConnectionError:
             return
 
-    @logger.catch
+    def process(self, html, url):
+        """
+        used for parse html
+        """
+        for proxy in self.parse(html):
+            logger.info(f'fetched proxy {proxy.string()} from {url}')
+            yield proxy
+
     def crawl(self):
         """
         crawl main method
         """
-        for url in self.urls:
-            logger.info(f'fetching {url}')
-            html = self.fetch(url)
-            time.sleep(.5)
-            for proxy in self.parse(html):
-                logger.info(f'fetched proxy {proxy.string()} from {url}')
-                yield proxy
+        try:
+            for url in self.urls:
+                logger.info(f'fetching {url}')
+                html = self.fetch(url)
+                time.sleep(.5)
+                yield from self.process(html, url)
+        except RetryError:
+            logger.error(
+                f'crawler {self} crawled proxy unsuccessfully, '
+                'please check if target url is valid or network issue')

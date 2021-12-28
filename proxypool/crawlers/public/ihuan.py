@@ -13,6 +13,7 @@ class IhuanCrawler(BaseCrawler):
     path = time.strftime("%Y/%m/%d/%H", time.localtime())
     urls = [BASE_URL.format(path=path)]
     ignore = False
+
     def parse(self, html):
         """
         parse html file to get proxies

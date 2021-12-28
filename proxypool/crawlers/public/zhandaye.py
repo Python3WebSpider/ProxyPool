@@ -8,6 +8,7 @@ import re
 BASE_URL = 'https://www.zdaye.com/dayProxy/{page}.html'
 MAX_PAGE = 5 * 2
 
+
 class ZhandayeCrawler(BaseCrawler):
     """
     zhandaye crawler, https://www.zdaye.com/dayProxy/
@@ -56,4 +57,3 @@ if __name__ == '__main__':
     crawler = ZhandayeCrawler()
     for proxy in crawler.crawl():
         print(proxy)
-
