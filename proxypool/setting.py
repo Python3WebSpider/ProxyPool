@@ -2,7 +2,6 @@ import platform
 from os.path import dirname, abspath, join
 from environs import Env
 from loguru import logger
-from proxypool.utils.parse import parse_redis_connection_string
 
 
 env = Env()
@@ -39,7 +38,8 @@ REDIS_CONNECTION_STRING = env.str(
     'PROXYPOOL_REDIS_CONNECTION_STRING', env.str('REDIS_CONNECTION_STRING', None))
 
 # redis hash table key name
-REDIS_KEY = env.str('REDIS_KEY', 'proxies:universal')
+REDIS_KEY = env.str('PROXYPOOL_REDIS_KEY', env.str(
+    'REDIS_KEY', 'proxies:universal'))
 
 # definition of proxy scores
 PROXY_SCORE_MAX = 100
