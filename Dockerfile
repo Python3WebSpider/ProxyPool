@@ -1,13 +1,17 @@
-FROM alpine:3.7
-WORKDIR /app
-RUN apk add --no-cache --virtual .build-deps g++ python3-dev libffi-dev \
-    openssl-dev libxml2-dev libxslt-dev gcc musl-dev py3-pip && \
-    apk add --no-cache --update python3 && \
-    pip3 install --upgrade pip setuptools
+FROM python:3.7-alpine AS build
 COPY requirements.txt .
-RUN pip3 install -r requirements.txt && \
-apk del g++ gcc musl-dev libxml2-dev
+RUN apk update &&\
+    apk add --no-cache gcc g++ libffi-dev openssl-dev libxml2-dev libxslt-dev &&\
+    pip install --timeout 30 --user --no-cache-dir --no-warn-script-location -r requirements.txt
+
+FROM python:3.7-alpine
+ENV APP_ENV=prod
+ENV LOCAL_PKG="/root/.local"
+COPY --from=build ${LOCAL_PKG} ${LOCAL_PKG}
+RUN apk update && apk add --no-cache libffi-dev openssl-dev libxslt-dev &&\
+    ln -sf ${LOCAL_PKG}/bin/* /usr/local/bin/
+WORKDIR /app
 COPY . .
-# RUN pip install -r requirements.txt  -i https://pypi.douban.com/simple
+EXPOSE 5555
 VOLUME ["/app/proxypool/crawlers/private"]
-CMD ["supervisord", "-c", "supervisord.conf"]
+ENTRYPOINT ["supervisord", "-c", "supervisord.conf"]
