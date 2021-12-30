@@ -1,11 +1,13 @@
 from flask import Flask, g
 from proxypool.storages.redis import RedisClient
-from proxypool.setting import API_HOST, API_PORT, API_THREADED
+from proxypool.setting import API_HOST, API_PORT, API_THREADED, IS_DEV
 
 
 __all__ = ['app']
 
 app = Flask(__name__)
+if IS_DEV:
+    app.debug = True
 
 
 def get_conn():
