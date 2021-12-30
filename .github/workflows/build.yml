@@ -28,12 +28,11 @@ jobs:
         with:
           username: germey
           password: ${{ secrets.DOCKERHUB_LOGIN_PASSWORD }}
-
-      - name: Extract branch name
-        id: branch
-        shell: bash
-        run: echo "##[set-output name=tag;]$(echo ${GITHUB_REF##*/} | sed 's/master/latest/')"
-
+      
+      - name: Get current date
+        id: date
+        run: echo "::set-output name=date::$(date +'%Y%m%d')"
+      
       - name: Build and push
         uses: docker/build-push-action@v2
         with:
@@ -41,4 +40,6 @@ jobs:
           push: true
           platforms: linux/amd64
           tags: |
-            germey/proxypool:${{ steps.branch.outputs.tag }}
+            germey/proxypool:latest
+            germey/proxypool:master
+            germey/proxypool:${{ steps.date.outputs.date }}

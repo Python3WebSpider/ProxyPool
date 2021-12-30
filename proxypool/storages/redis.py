@@ -1,7 +1,7 @@
 import redis
 from proxypool.exceptions import PoolEmptyException
 from proxypool.schemas.proxy import Proxy
-from proxypool.setting import REDIS_HOST, REDIS_PORT, REDIS_PASSWORD, REDIS_DB, REDIS_KEY, PROXY_SCORE_MAX, PROXY_SCORE_MIN, \
+from proxypool.setting import REDIS_CONNECTION_STRING, REDIS_HOST, REDIS_PORT, REDIS_PASSWORD, REDIS_DB, REDIS_KEY, PROXY_SCORE_MAX, PROXY_SCORE_MIN, \
     PROXY_SCORE_INIT
 from random import choice
 from typing import List
@@ -18,14 +18,21 @@ class RedisClient(object):
     redis connection client of proxypool
     """
 
-    def __init__(self, host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWORD, db=REDIS_DB, **kwargs):
+    def __init__(self, host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWORD, db=REDIS_DB,
+                 connection_string=REDIS_CONNECTION_STRING, **kwargs):
         """
         init redis client
         :param host: redis host
         :param port: redis port
         :param password: redis password
+        :param connection_string: redis connection_string
         """
-        self.db = redis.StrictRedis(host=host, port=port, password=password, db=db, decode_responses=True, **kwargs)
+        # if set connection_string, just use it
+        if connection_string:
+            self.db = redis.StrictRedis.from_url(connection_string)
+        else:
+            self.db = redis.StrictRedis(
+                host=host, port=port, password=password, db=db, decode_responses=True, **kwargs)
 
     def add(self, proxy: Proxy, score=PROXY_SCORE_INIT) -> int:
         """
@@ -51,11 +58,13 @@ class RedisClient(object):
         :return: proxy, like 8.8.8.8:8
         """
         # try to get proxy with max score
-        proxies = self.db.zrangebyscore(REDIS_KEY, PROXY_SCORE_MAX , PROXY_SCORE_MAX)
+        proxies = self.db.zrangebyscore(
+            REDIS_KEY, PROXY_SCORE_MAX, PROXY_SCORE_MAX)
         if len(proxies):
             return convert_proxy_or_proxies(choice(proxies))
         # else get proxy by rank
-        proxies = self.db.zrevrange(REDIS_KEY, PROXY_SCORE_MIN , PROXY_SCORE_MAX)
+        proxies = self.db.zrevrange(
+            REDIS_KEY, PROXY_SCORE_MIN, PROXY_SCORE_MAX)
         if len(proxies):
             return convert_proxy_or_proxies(choice(proxies))
         # else raise error
@@ -125,4 +134,3 @@ if __name__ == '__main__':
     conn = RedisClient()
     result = conn.random()
     print(result)
-
