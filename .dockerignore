@@ -131,3 +131,5 @@ dmypy.json
 .pyre/
 
 proxypool/.env
+.DS_Store
+.vscode
