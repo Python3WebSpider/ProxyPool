@@ -62,7 +62,7 @@ class Scheduler():
                 try:
                     from gevent.pywsgi import WSGIServer
                 except ImportError as e:
-                    logger.error(e)
+                    logger.exception(e)
                 else:
                     http_server = WSGIServer((API_HOST, API_PORT), app)
                     http_server.serve_forever()
@@ -73,7 +73,7 @@ class Scheduler():
                     from tornado.httpserver import HTTPServer
                     from tornado.ioloop import IOLoop
                 except ImportError as e:
-                    logger.error(e)
+                    logger.exception(e)
                 else:
                     http_server = HTTPServer(WSGIContainer(app))
                     http_server.listen(API_PORT)
@@ -83,7 +83,7 @@ class Scheduler():
                 try:
                     import meinheld
                 except ImportError as e:
-                    logger.error(e)
+                    logger.exception(e)
                 else:
                     meinheld.listen((API_HOST, API_PORT))
                     meinheld.run(app)

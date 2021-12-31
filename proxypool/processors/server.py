@@ -48,8 +48,9 @@ def get_proxy_all():
     conn = get_conn()
     proxies = conn.all()
     proxies_string = ''
-    for proxy in proxies:
-        proxies_string += str(proxy) + '\n'
+    if proxies:
+        for proxy in proxies:
+            proxies_string += str(proxy) + '\n'
 
     return proxies_string
 
