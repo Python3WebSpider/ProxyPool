@@ -77,7 +77,7 @@ proxypool    | 2020-02-19 17:09:46,596 INFO success: tester entered RUNNING stat
 当然你也可以选择自己 Build，直接运行如下命令即可：
 
 ```
-docker-compose -f build.yml up
+docker-compose -f build.yaml up
 ```
 
 如果下载速度特别慢，可以自行修改 Dockerfile，修改：
