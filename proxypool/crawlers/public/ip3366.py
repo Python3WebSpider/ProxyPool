@@ -3,7 +3,7 @@ from proxypool.schemas.proxy import Proxy
 import re
 
 
-MAX_PAGE = 8
+MAX_PAGE = 3
 BASE_URL = 'http://www.ip3366.net/free/?stype={stype}&page={page}'
 
 

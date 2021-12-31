@@ -3,7 +3,7 @@ from proxypool.crawlers.base import BaseCrawler
 from pyquery import PyQuery as pq
 
 BaseUrl = 'http://www.taiyanghttp.com/free/page{num}'
-MAX_PAGE = 5
+MAX_PAGE = 3
 
 
 class TaiyangdailiCrawler(BaseCrawler):

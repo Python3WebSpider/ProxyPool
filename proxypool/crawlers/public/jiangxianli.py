@@ -5,7 +5,7 @@ import json
 
 BASE_URL = 'https://ip.jiangxianli.com/api/proxy_ips?page={page}'
 
-MAX_PAGE = 10
+MAX_PAGE = 3
 
 
 class JiangxianliCrawler(BaseCrawler):

@@ -4,7 +4,7 @@ from proxypool.crawlers.base import BaseCrawler
 
 
 BASE_URL = 'http://www.66ip.cn/{page}.html'
-MAX_PAGE = 50
+MAX_PAGE = 3
 
 
 class Daili66Crawler(BaseCrawler):

@@ -5,7 +5,7 @@ from pyquery import PyQuery as pq
 
 
 BASE_URL = 'https://www.kuaidaili.com/free/{type}/{page}/'
-MAX_PAGE = 300
+MAX_PAGE = 3
 
 
 class KuaidailiCrawler(BaseCrawler):

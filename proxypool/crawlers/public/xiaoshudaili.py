@@ -5,7 +5,7 @@ from proxypool.crawlers.base import BaseCrawler
 
 BASE_URL = "http://www.xsdaili.cn/"
 PAGE_BASE_URL = "http://www.xsdaili.cn/dayProxy/ip/{page}.html"
-MAX_PAGE = 50
+MAX_PAGE = 3
 
 
 class XiaoShuCrawler(BaseCrawler):
