@@ -3,7 +3,8 @@ import multiprocessing
 from proxypool.processors.server import app
 from proxypool.processors.getter import Getter
 from proxypool.processors.tester import Tester
-from proxypool.setting import CYCLE_GETTER, CYCLE_TESTER, API_HOST, API_THREADED, API_PORT, ENABLE_SERVER, \
+from proxypool.setting import CYCLE_GETTER, CYCLE_TESTER, API_HOST, \
+    API_THREADED, API_PORT, ENABLE_SERVER, IS_PROD, APP_PROD_METHOD, \
     ENABLE_GETTER, ENABLE_TESTER, IS_WINDOWS
 from loguru import logger
 
@@ -56,7 +57,42 @@ class Scheduler():
         if not ENABLE_SERVER:
             logger.info('server not enabled, exit')
             return
-        app.run(host=API_HOST, port=API_PORT, threaded=API_THREADED)
+        if IS_PROD:
+            if APP_PROD_METHOD == 'gevent':
+                try:
+                    from gevent.pywsgi import WSGIServer
+                except ImportError as e:
+                    logger.exception(e)
+                else:
+                    http_server = WSGIServer((API_HOST, API_PORT), app)
+                    http_server.serve_forever()
+
+            elif APP_PROD_METHOD == 'tornado':
+                try:
+                    from tornado.wsgi import WSGIContainer
+                    from tornado.httpserver import HTTPServer
+                    from tornado.ioloop import IOLoop
+                except ImportError as e:
+                    logger.exception(e)
+                else:
+                    http_server = HTTPServer(WSGIContainer(app))
+                    http_server.listen(API_PORT)
+                    IOLoop.instance().start()
+
+            elif APP_PROD_METHOD == "meinheld":
+                try:
+                    import meinheld
+                except ImportError as e:
+                    logger.exception(e)
+                else:
+                    meinheld.listen((API_HOST, API_PORT))
+                    meinheld.run(app)
+
+            else:
+                logger.error("unsupported APP_PROD_METHOD")
+                return
+        else:
+            app.run(host=API_HOST, port=API_PORT, threaded=API_THREADED)
 
     def run(self):
         global tester_process, getter_process, server_process
@@ -71,13 +107,13 @@ class Scheduler():
             if ENABLE_GETTER:
                 getter_process = multiprocessing.Process(
                     target=self.run_getter)
-                logger.info(f'starting getter, pid{getter_process.pid}...')
+                logger.info(f'starting getter, pid {getter_process.pid}...')
                 getter_process.start()
 
             if ENABLE_SERVER:
                 server_process = multiprocessing.Process(
                     target=self.run_server)
-                logger.info(f'starting server, pid{server_process.pid}...')
+                logger.info(f'starting server, pid {server_process.pid}...')
                 server_process.start()
 
             tester_process and tester_process.join()

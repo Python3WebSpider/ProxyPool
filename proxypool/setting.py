@@ -22,6 +22,12 @@ APP_DEV = IS_DEV = APP_ENV == DEV_MODE
 APP_PROD = IS_PROD = APP_ENV == PROD_MODE
 APP_TEST = IS_TEST = APP_ENV == TEST_MODE
 
+# Which WSGI container is used to run applications
+# - gevent: pip install gevent
+# - tornado: pip install tornado
+# - meinheld: pip install meinheld
+APP_PROD_METHOD = env.str('APP_PROD_METHOD', "gevent").lower()
+
 # redis host
 REDIS_HOST = env.str('PROXYPOOL_REDIS_HOST',
                      env.str('REDIS_HOST', '127.0.0.1'))

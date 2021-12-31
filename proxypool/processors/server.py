@@ -1,11 +1,13 @@
 from flask import Flask, g
 from proxypool.storages.redis import RedisClient
-from proxypool.setting import API_HOST, API_PORT, API_THREADED
+from proxypool.setting import API_HOST, API_PORT, API_THREADED, IS_DEV
 
 
 __all__ = ['app']
 
 app = Flask(__name__)
+if IS_DEV:
+    app.debug = True
 
 
 def get_conn():
@@ -46,8 +48,9 @@ def get_proxy_all():
     conn = get_conn()
     proxies = conn.all()
     proxies_string = ''
-    for proxy in proxies:
-        proxies_string += str(proxy) + '\n'
+    if proxies:
+        for proxy in proxies:
+            proxies_string += str(proxy) + '\n'
 
     return proxies_string
 

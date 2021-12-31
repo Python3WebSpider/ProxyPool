@@ -38,6 +38,8 @@ cd ProxyPool
 
 安装方法自行搜索即可。
 
+官方 Docker Hub 镜像：[germey/proxypool](https://hub.docker.com/r/germey/proxypool)
+
 ### 常规方式
 
 常规方式要求有 Python 环境、Redis 环境，具体要求如下：
@@ -100,25 +102,20 @@ docker-compose -f build.yml up
 设置 host、port、password，如果 password 为空可以设置为空字符串，示例如下：
 
 ```shell script
-export REDIS_HOST='localhost'
-export REDIS_PORT=6379
-export REDIS_PASSWORD=''
-export REDIS_DB=0
+export PROXYPOOL_REDIS_HOST='localhost'
+export PROXYPOOL_REDIS_PORT=6379
+export PROXYPOOL_REDIS_PASSWORD=''
+export PROXYPOOL_REDIS_DB=0
 ```
 
 或者只设置连接字符串：
 
 ```shell script
-export REDIS_CONNECTION_STRING='redis://[password]@host:port/db'
+export PROXYPOOL_REDIS_CONNECTION_STRING='redis://localhost'
 ```
 
-如果没有密码也要设置为：
-
-```shell script
-export REDIS_CONNECTION_STRING='redis://@host:port/db'
-```
-
-这里连接字符串的格式需要符合 `redis://[password]@host:port/db` 的格式，注意不要遗漏 `@`。
+这里连接字符串的格式需要符合 `redis://[:password@]host[:port][/database]` 的格式，
+中括号参数可以省略，port默认是6379，database默认是0，密码默认为空。
 
 以上两种设置任选其一即可。
 
@@ -233,6 +230,8 @@ get random proxy 116.196.115.209:8080
 
 - APP_ENV：运行环境，可以设置 dev、test、prod，即开发、测试、生产环境，默认 dev
 - APP_DEBUG：调试模式，可以设置 true 或 false，默认 true
+- APP_PROD_METHOD: 正式环境启动应用方式，默认是`gevent`，
+  可选：`tornado`，`meinheld`（分别需要安装tornado或meinheld模块）
 
 ### Redis 连接
 
