@@ -3,7 +3,7 @@ import multiprocessing
 from proxypool.processors.server import app
 from proxypool.processors.getter import Getter
 from proxypool.processors.tester import Tester
-from proxypool.setting import CYCLE_GETTER, CYCLE_TESTER, API_HOST, \
+from proxypool.setting import APP_PROD_METHOD_GEVENT, APP_PROD_METHOD_MEINHELD, APP_PROD_METHOD_TORNADO, CYCLE_GETTER, CYCLE_TESTER, API_HOST, \
     API_THREADED, API_PORT, ENABLE_SERVER, IS_PROD, APP_PROD_METHOD, \
     ENABLE_GETTER, ENABLE_TESTER, IS_WINDOWS
 from loguru import logger
@@ -58,7 +58,7 @@ class Scheduler():
             logger.info('server not enabled, exit')
             return
         if IS_PROD:
-            if APP_PROD_METHOD == 'gevent':
+            if APP_PROD_METHOD == APP_PROD_METHOD_GEVENT:
                 try:
                     from gevent.pywsgi import WSGIServer
                 except ImportError as e:
@@ -67,7 +67,7 @@ class Scheduler():
                     http_server = WSGIServer((API_HOST, API_PORT), app)
                     http_server.serve_forever()
 
-            elif APP_PROD_METHOD == 'tornado':
+            elif APP_PROD_METHOD == APP_PROD_METHOD_TORNADO:
                 try:
                     from tornado.wsgi import WSGIContainer
                     from tornado.httpserver import HTTPServer
@@ -79,7 +79,7 @@ class Scheduler():
                     http_server.listen(API_PORT)
                     IOLoop.instance().start()
 
-            elif APP_PROD_METHOD == "meinheld":
+            elif APP_PROD_METHOD == APP_PROD_METHOD_MEINHELD:
                 try:
                     import meinheld
                 except ImportError as e:

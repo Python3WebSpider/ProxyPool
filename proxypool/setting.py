@@ -26,7 +26,10 @@ APP_TEST = IS_TEST = APP_ENV == TEST_MODE
 # - gevent: pip install gevent
 # - tornado: pip install tornado
 # - meinheld: pip install meinheld
-APP_PROD_METHOD = env.str('APP_PROD_METHOD', "gevent").lower()
+APP_PROD_METHOD_GEVENT = 'gevent'
+APP_PROD_METHOD_TORNADO = 'tornado'
+APP_PROD_METHOD_MEINHELD = 'meinheld'
+APP_PROD_METHOD = env.str('APP_PROD_METHOD', APP_PROD_METHOD_GEVENT).lower()
 
 # redis host
 REDIS_HOST = env.str('PROXYPOOL_REDIS_HOST',
