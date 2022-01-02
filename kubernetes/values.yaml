@@ -16,8 +16,10 @@ deployment:
       memory: "200Mi"
       cpu: "80m"
   env:
-    - name: REDIS_HOST
+    - name: PROXYPOOL_REDIS_HOST
       value: "proxypool-redis"
+    - name: PROXYPOOL_REDIS_PORT
+      value: "6379"
 
 service:
   type: ClusterIP
