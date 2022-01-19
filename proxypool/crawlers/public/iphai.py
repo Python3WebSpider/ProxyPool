@@ -10,7 +10,7 @@ class IPHaiCrawler(BaseCrawler):
     iphai crawler, http://www.iphai.com/
     """
     urls = [BASE_URL]
-    
+    ignore = True
     
     def parse(self, html):
         """
@@ -32,3 +32,4 @@ if __name__ == '__main__':
     crawler = IPHaiCrawler()
     for proxy in crawler.crawl():
         print(proxy)
+

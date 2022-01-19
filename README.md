@@ -1,34 +1,51 @@
 # ProxyPool
 
+![build](https://github.com/Python3WebSpider/ProxyPool/workflows/build/badge.svg)
+![deploy](https://github.com/Python3WebSpider/ProxyPool/workflows/deploy/badge.svg)
 ![](https://img.shields.io/badge/python-3.6%2B-brightgreen)
 ![Docker Pulls](https://img.shields.io/docker/pulls/germey/proxypool)
 
 简易高效的代理池，提供如下功能：
 
-* 定时抓取免费代理网站，简易可扩展。
-* 使用 Redis 对代理进行存储并对代理可用性进行排序。
-* 定时测试和筛选，剔除不可用代理，留下可用代理。
-* 提供代理 API，随机取用测试通过的可用代理。
+- 定时抓取免费代理网站，简易可扩展。
+- 使用 Redis 对代理进行存储并对代理可用性进行排序。
+- 定时测试和筛选，剔除不可用代理，留下可用代理。
+- 提供代理 API，随机取用测试通过的可用代理。
 
 代理池原理解析可见「[如何搭建一个高效的代理池](https://cuiqingcai.com/7048.html)」，建议使用之前阅读。
 
+## 使用准备
+
+首先当然是克隆代码并进入 ProxyPool 文件夹：
+
+```
+git clone https://github.com/Python3WebSpider/ProxyPool.git
+cd ProxyPool
+```
+
+然后选用下面 Docker 和常规方式任意一个执行即可。
+
 ## 使用要求
 
-可以通过两种方式来运行代理池，一种方式是使用 Docker（推荐），另一种方式是常规方式运行。
+可以通过两种方式来运行代理池，一种方式是使用 Docker（推荐），另一种方式是常规方式运行，要求如下：
 
 ### Docker
 
 如果使用 Docker，则需要安装如下环境：
 
-* Docker
-* Docker-Compose
+- Docker
+- Docker-Compose
+
+安装方法自行搜索即可。
+
+官方 Docker Hub 镜像：[germey/proxypool](https://hub.docker.com/r/germey/proxypool)
 
 ### 常规方式
 
 常规方式要求有 Python 环境、Redis 环境，具体要求如下：
 
-* Python>=3.6
-* Redis
+- Python>=3.6
+- Redis
 
 ## Docker 运行
 
@@ -57,6 +74,19 @@ proxypool    | 2020-02-19 17:09:46,596 INFO success: tester entered RUNNING stat
 
 这时候访问 [http://localhost:5555/random](http://localhost:5555/random) 即可获取一个随机可用代理。
 
+当然你也可以选择自己 Build，直接运行如下命令即可：
+
+```
+docker-compose -f build.yaml up
+```
+
+如果下载速度特别慢，可以自行修改 Dockerfile，修改：
+
+```diff
+- RUN pip install -r requirements.txt
++ RUN pip install -r requirements.txt -i https://pypi.douban.com/simple
+```
+
 ## 常规方式运行
 
 如果不使用 Docker 运行，配置好 Python、Redis 环境之后也可运行，步骤如下。
@@ -72,24 +102,26 @@ proxypool    | 2020-02-19 17:09:46,596 INFO success: tester entered RUNNING stat
 设置 host、port、password，如果 password 为空可以设置为空字符串，示例如下：
 
 ```shell script
-export REDIS_HOST='localhost'
-export REDIS_PORT=6379
-export REDIS_PASSWORD=''
+export PROXYPOOL_REDIS_HOST='localhost'
+export PROXYPOOL_REDIS_PORT=6379
+export PROXYPOOL_REDIS_PASSWORD=''
+export PROXYPOOL_REDIS_DB=0
 ```
 
 或者只设置连接字符串：
 
 ```shell script
-export REDIS_CONNECTION_STRING='redis://[password]@host:port'
+export PROXYPOOL_REDIS_CONNECTION_STRING='redis://localhost'
 ```
 
-这里连接字符串的格式需要符合 `redis://[password]@host:port` 的格式。
+这里连接字符串的格式需要符合 `redis://[:password@]host[:port][/database]` 的格式，
+中括号参数可以省略，port默认是6379，database默认是0，密码默认为空。
 
 以上两种设置任选其一即可。
 
 ### 安装依赖包
 
-这里强烈推荐使用 [Conda](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-with-commands) 
+这里强烈推荐使用 [Conda](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-with-commands)
 或 [virtualenv](https://virtualenv.pypa.io/en/latest/user_guide.html) 创建虚拟环境，Python 版本不低于 3.6。
 
 然后 pip 安装依赖即可：
@@ -169,15 +201,15 @@ if __name__ == '__main__':
 ```
 get random proxy 116.196.115.209:8080
 {
-  "args": {}, 
+  "args": {},
   "headers": {
-    "Accept": "*/*", 
-    "Accept-Encoding": "gzip, deflate", 
-    "Host": "httpbin.org", 
-    "User-Agent": "python-requests/2.22.0", 
+    "Accept": "*/*",
+    "Accept-Encoding": "gzip, deflate",
+    "Host": "httpbin.org",
+    "User-Agent": "python-requests/2.22.0",
     "X-Amzn-Trace-Id": "Root=1-5e4d7140-662d9053c0a2e513c7278364"
-  }, 
-  "origin": "116.196.115.209", 
+  },
+  "origin": "116.196.115.209",
   "url": "https://httpbin.org/get"
 }
 ```
@@ -190,40 +222,43 @@ get random proxy 116.196.115.209:8080
 
 ### 开关
 
-* ENABLE_TESTER：允许 Tester 启动，默认 true
-* ENABLE_GETTER：允许 Getter 启动，默认 true
-* ENABLE_SERVER：运行 Server 启动，默认 true
+- ENABLE_TESTER：允许 Tester 启动，默认 true
+- ENABLE_GETTER：允许 Getter 启动，默认 true
+- ENABLE_SERVER：运行 Server 启动，默认 true
 
 ### 环境
 
-* APP_ENV：运行环境，可以设置 dev、test、prod，即开发、测试、生产环境，默认 dev
-* APP_DEBUG：调试模式，可以设置 true 或 false，默认 true
+- APP_ENV：运行环境，可以设置 dev、test、prod，即开发、测试、生产环境，默认 dev
+- APP_DEBUG：调试模式，可以设置 true 或 false，默认 true
+- APP_PROD_METHOD: 正式环境启动应用方式，默认是`gevent`，
+  可选：`tornado`，`meinheld`（分别需要安装tornado或meinheld模块）
 
 ### Redis 连接
 
-* REDIS_HOST：Redis 的 Host
-* REDIS_PORT：Redis 的端口
-* REDIS_PASSWORD：Redis 的密码
-* REDIS_CONNECTION_STRING：Redis 连接字符串
-* REDIS_KEY：Redis 储存代理使用字典的名称
+- PROXYPOOL_REDIS_HOST / REDIS_HOST：Redis 的 Host，其中 PROXYPOOL_REDIS_HOST 会覆盖 REDIS_HOST 的值。
+- PROXYPOOL_REDIS_PORT / REDIS_PORT：Redis 的端口，其中 PROXYPOOL_REDIS_PORT 会覆盖 REDIS_PORT 的值。
+- PROXYPOOL_REDIS_PASSWORD / REDIS_PASSWORD：Redis 的密码，其中 PROXYPOOL_REDIS_PASSWORD 会覆盖 REDIS_PASSWORD 的值。
+- PROXYPOOL_REDIS_DB / REDIS_DB：Redis 的数据库索引，如 0、1，其中 PROXYPOOL_REDIS_DB 会覆盖 REDIS_DB 的值。
+- PROXYPOOL_REDIS_CONNECTION_STRING / REDIS_CONNECTION_STRING：Redis 连接字符串，其中 PROXYPOOL_REDIS_CONNECTION_STRING 会覆盖 REDIS_CONNECTION_STRING 的值。
+- PROXYPOOL_REDIS_KEY / REDIS_KEY：Redis 储存代理使用字典的名称，其中 PROXYPOOL_REDIS_KEY 会覆盖 REDIS_KEY 的值。
 
 ### 处理器
 
-* CYCLE_TESTER：Tester 运行周期，即间隔多久运行一次测试，默认 20 秒
-* CYCLE_GETTER：Getter 运行周期，即间隔多久运行一次代理获取，默认 100 秒
-* TEST_URL：测试 URL，默认百度
-* TEST_TIMEOUT：测试超时时间，默认 10 秒
-* TEST_BATCH：批量测试数量，默认 20 个代理
-* TEST_VALID_STATUS：测试有效的状态吗
-* API_HOST：代理 Server 运行 Host，默认 0.0.0.0
-* API_PORT：代理 Server 运行端口，默认 5555
-* API_THREADED：代理 Server 是否使用多线程，默认 true
+- CYCLE_TESTER：Tester 运行周期，即间隔多久运行一次测试，默认 20 秒
+- CYCLE_GETTER：Getter 运行周期，即间隔多久运行一次代理获取，默认 100 秒
+- TEST_URL：测试 URL，默认百度
+- TEST_TIMEOUT：测试超时时间，默认 10 秒
+- TEST_BATCH：批量测试数量，默认 20 个代理
+- TEST_VALID_STATUS：测试有效的状态吗
+- API_HOST：代理 Server 运行 Host，默认 0.0.0.0
+- API_PORT：代理 Server 运行端口，默认 5555
+- API_THREADED：代理 Server 是否使用多线程，默认 true
 
 ### 日志
 
-* LOG_DIR：日志相对路径
-* LOG_RUNTIME_FILE：运行日志文件名称
-* LOG_ERROR_FILE：错误日志文件名称
+- LOG_DIR：日志相对路径
+- LOG_RUNTIME_FILE：运行日志文件名称
+- LOG_ERROR_FILE：错误日志文件名称
 
 以上内容均可使用环境变量配置，即在运行前设置对应环境变量值即可，如更改测试地址和 Redis 键名：
 
@@ -237,7 +272,7 @@ export REDIS_KEY=proxies:weibo
 如果使用 Docker-Compose 启动代理池，则需要在 docker-compose.yml 文件里面指定环境变量，如：
 
 ```yaml
-version: '3'
+version: "3"
 services:
   redis:
     image: redis:alpine
@@ -248,7 +283,7 @@ services:
     restart: always
   proxypool:
     build: .
-    image: 'germey/proxypool'
+    image: "germey/proxypool"
     container_name: proxypool
     ports:
       - "5555:5555"
@@ -280,7 +315,7 @@ class Daili66Crawler(BaseCrawler):
     daili66 crawler, http://www.66ip.cn/1.html
     """
     urls = [BASE_URL.format(page=page) for page in range(1, MAX_PAGE + 1)]
-    
+
     def parse(self, html):
         """
         parse html file to get proxies
@@ -296,8 +331,8 @@ class Daili66Crawler(BaseCrawler):
 
 在这里只需要定义一个 Crawler 继承 BaseCrawler 即可，然后定义好 urls 变量和 parse 方法即可。
 
-* urls 变量即为爬取的代理网站网址列表，可以用程序定义也可写成固定内容。
-* parse 方法接收一个参数即 html，代理网址的 html，在 parse 方法里只需要写好 html 的解析，解析出 host 和 port，并构建 Proxy 对象 yield 返回即可。
+- urls 变量即为爬取的代理网站网址列表，可以用程序定义也可写成固定内容。
+- parse 方法接收一个参数即 html，代理网址的 html，在 parse 方法里只需要写好 html 的解析，解析出 host 和 port，并构建 Proxy 对象 yield 返回即可。
 
 网页的爬取不需要实现，BaseCrawler 已经有了默认实现，如需更改爬取方式，重写 crawl 方法即可。
 
@@ -305,12 +340,15 @@ class Daili66Crawler(BaseCrawler):
 
 ## 部署
 
-本项目提供了 Kubernetes 部署脚本，如需部署到 Kubernetes，执行如下命令即可：
+本项目提供了 Kubernetes 部署脚本，如需部署到 Kubernetes，请参考 [kubernetes](./kubernetes)。
 
-```shell script
-kubectl apply -f deployment.yml
-```
+## 待开发
 
-## License
+- [ ] 前端页面管理
+- [ ] 使用情况统计分析
+
+如有一起开发的兴趣可以在 Issue 留言，非常感谢！
+
+## LICENSE
 
 MIT

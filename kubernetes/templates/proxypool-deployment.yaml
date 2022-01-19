@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "proxypool.fullname" . }}
+  labels:
+    {{- include "proxypool.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.deployment.replicas }}
+  revisionHistoryLimit: {{ .Values.deployment.revisionHistoryLimit }}
+  selector:
+    matchLabels:
+      {{- include "proxypool.labels" . | nindent 8 }}
+  template:
+    metadata:
+      labels:
+        {{- include "proxypool.labels" . | nindent 8 }}
+    spec:
+      restartPolicy: {{ .Values.deployment.restartPolicy }}
+      containers:
+        - name: {{ include "proxypool.fullname" . }}
+          image: {{ .Values.deployment.image }}
+          ports:
+            - containerPort: 5555
+              protocol: TCP
+          imagePullPolicy: {{ .Values.deployment.imagePullPolicy }}
+          livenessProbe:
+            httpGet:
+              path: /random
+              port: 5555
+            initialDelaySeconds: 60
+            periodSeconds: 5
+            failureThreshold: 5
+            timeoutSeconds: 10
+          resources:
+            {{- toYaml .Values.deployment.resources | nindent 12 }}
+          env:
+            {{- toYaml .Values.deployment.env | nindent 12 }}

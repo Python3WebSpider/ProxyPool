@@ -1,0 +1,43 @@
+name: deploy
+on:
+  push:
+    branches:
+      - release
+    paths-ignore:
+      - .gitignore
+      - README.md
+      - '.github/ISSUE_TEMPLATE/**'
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@master
+      - name: Docker Login
+        uses: Azure/docker-login@v1
+        with:
+          username: germey
+          password: ${{ secrets.DOCKERHUB_LOGIN_PASSWORD }}
+      - name: Set Kubectl
+        uses: Azure/k8s-set-context@v1
+        with:
+          kubeconfig: ${{ secrets.KUBE_CONFIG }}
+      - name: Test Kubectl
+        run: |
+          kubectl get nodes
+          kubectl get svc -n scrape
+      - name: Generate Build Number
+        uses: einaregilsson/build-number@v2
+        with:
+          token: ${{ secrets.github_token }}
+      - name: Get Build Number
+        run: |
+          echo $BUILD_NUMBER
+      - name: Build Push Deploy
+        run: |
+          docker-compose -f build.yaml build
+          docker tag germey/proxypool germey/proxypool:$BUILD_NUMBER
+          docker push germey/proxypool
+          docker push germey/proxypool:$BUILD_NUMBER
+          cat deployment.yml | sed 's/\${TAG}/'"$BUILD_NUMBER"'/g' | kubectl apply -f -
+          

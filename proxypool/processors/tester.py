@@ -3,8 +3,8 @@ import aiohttp
 from loguru import logger
 from proxypool.schemas import Proxy
 from proxypool.storages.redis import RedisClient
-from proxypool.setting import TEST_TIMEOUT, TEST_BATCH, TEST_URL, TEST_VALID_STATUS
-from aiohttp import ClientProxyConnectionError, ServerDisconnectedError
+from proxypool.setting import TEST_TIMEOUT, TEST_BATCH, TEST_URL, TEST_VALID_STATUS, TEST_ANONYMOUS
+from aiohttp import ClientProxyConnectionError, ServerDisconnectedError, ClientOSError, ClientHttpProxyError
 from asyncio import TimeoutError
 
 
@@ -12,7 +12,10 @@ EXCEPTIONS = (
     ClientProxyConnectionError,
     ConnectionRefusedError,
     TimeoutError,
-    ServerDisconnectedError
+    ServerDisconnectedError,
+    ClientOSError,
+    ClientHttpProxyError,
+    AssertionError
 )
 
 
@@ -37,6 +40,18 @@ class Tester(object):
         async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False)) as session:
             try:
                 logger.debug(f'testing {proxy.string()}')
+                # if TEST_ANONYMOUS is True, make sure that
+                # the proxy has the effect of hiding the real IP
+                if TEST_ANONYMOUS:
+                    url = 'https://httpbin.org/ip'
+                    async with session.get(url, timeout=TEST_TIMEOUT) as response:
+                        resp_json = await response.json()
+                        origin_ip = resp_json['origin']
+                    async with session.get(url, proxy=f'http://{proxy.string()}', timeout=TEST_TIMEOUT) as response:
+                        resp_json = await response.json()
+                        anonymous_ip = resp_json['origin']
+                    assert origin_ip != anonymous_ip
+                    assert proxy.host == anonymous_ip
                 async with session.get(TEST_URL, proxy=f'http://{proxy.string()}', timeout=TEST_TIMEOUT,
                                        allow_redirects=False) as response:
                     if response.status in TEST_VALID_STATUS:
@@ -59,16 +74,24 @@ class Tester(object):
         logger.info('stating tester...')
         count = self.redis.count()
         logger.debug(f'{count} proxies to test')
-        for i in range(0, count, TEST_BATCH):
-            # start end end offset
-            start, end = i, min(i + TEST_BATCH, count)
-            logger.debug(f'testing proxies from {start} to {end} indices')
-            proxies = self.redis.batch(start, end)
-            tasks = [self.test(proxy) for proxy in proxies]
-            # run tasks using event loop
-            self.loop.run_until_complete(asyncio.wait(tasks))
+        cursor = 0
+        while True:
+            logger.debug(f'testing proxies use cursor {cursor}, count {TEST_BATCH}')
+            cursor, proxies = self.redis.batch(cursor, count=TEST_BATCH)
+            if proxies:
+                tasks = [self.test(proxy) for proxy in proxies]
+                self.loop.run_until_complete(asyncio.wait(tasks))
+            if not cursor:
+                break
 
+def run_tester():
+    host = '96.113.165.182'
+    port = '3128'
+    tasks = [tester.test(Proxy(host=host, port=port))]
+    tester.loop.run_until_complete(asyncio.wait(tasks))
 
 if __name__ == '__main__':
     tester = Tester()
     tester.run()
+    # run_tester()
+

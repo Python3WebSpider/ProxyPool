@@ -1,14 +1,36 @@
 from proxypool.schemas import Proxy
-import re
 
 
 def is_valid_proxy(data):
     """
-    is data is valid proxy format
-    :param data:
-    :return:
+    check this string is within proxy format
     """
-    return re.match('\d+\.\d+\.\d+\.\d+\:\d+', data)
+    if data.__contains__(':'):
+        ip = data.split(':')[0]
+        port = data.split(':')[1]
+        return is_ip_valid(ip) and is_port_valid(port)
+    else:
+        return is_ip_valid(data)
+
+
+def is_ip_valid(ip):
+    """
+    check this string is within ip format
+    """
+    a = ip.split('.')
+    if len(a) != 4:
+        return False
+    for x in a:
+        if not x.isdigit():
+            return False
+        i = int(x)
+        if i < 0 or i > 255:
+            return False
+    return True
+
+
+def is_port_valid(port):
+    return port.isdigit()
 
 
 def convert_proxy_or_proxies(data):

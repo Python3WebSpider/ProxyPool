@@ -1,0 +1,39 @@
+name: proxypool
+fullname: proxypool-app
+
+deployment:
+  image: germey/proxypool:master
+  imagePullPolicy: Always
+  restartPolicy: Always
+  revisionHistoryLimit: 2
+  successfulJobsHistoryLimit: 1
+  replicas: 1
+  resources:
+    limits:
+      memory: "200Mi"
+      cpu: "80m"
+    requests:
+      memory: "200Mi"
+      cpu: "80m"
+  env:
+    - name: PROXYPOOL_REDIS_HOST
+      value: "proxypool-redis"
+    - name: PROXYPOOL_REDIS_PORT
+      value: "6379"
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: true
+  annotations:
+    kubernetes.io/ingress.class: nginx
+  hosts:
+    - host: proxypool.scrape.center
+      paths:
+        - "/"
+  tls:
+    - secretName: tls-wildcard-scrape-center
+      hosts:
+        - proxypool.scrape.center
