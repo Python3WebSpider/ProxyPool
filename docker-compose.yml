@@ -3,8 +3,8 @@ services:
   redis4proxypool:
     image: redis:alpine
     container_name: redis4proxypool
-    ports:
-      - "6374:6379"
+    # ports:
+    #   - "6374:6379"
   proxypool:
     image: "germey/proxypool:master"
     container_name: proxypool
