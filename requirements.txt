@@ -15,3 +15,4 @@ gevent>=21.1.0,<22.0.0
 tornado>=6.0,<7.0
 meinheld>=1.0.0,<2.0.0
 itsdangerous>=0.24,<1.0.0
+MarkupSafe<2.1.0
