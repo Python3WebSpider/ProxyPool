@@ -250,7 +250,7 @@ get random proxy 116.196.115.209:8080
 - TEST_URL：测试 URL，默认百度
 - TEST_TIMEOUT：测试超时时间，默认 10 秒
 - TEST_BATCH：批量测试数量，默认 20 个代理
-- TEST_VALID_STATUS：测试有效的状态吗
+- TEST_VALID_STATUS：测试有效的状态码
 - API_HOST：代理 Server 运行 Host，默认 0.0.0.0
 - API_PORT：代理 Server 运行端口，默认 5555
 - API_THREADED：代理 Server 是否使用多线程，默认 true
