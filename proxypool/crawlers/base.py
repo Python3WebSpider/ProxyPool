@@ -20,7 +20,7 @@ class BaseCrawler(object):
             if response.status_code == 200:
                 response.encoding = 'utf-8'
                 return response.text
-        except requests.ConnectionError:
+        except (requests.ConnectionError, requests.ReadTimeout):
             return
 
     def process(self, html, url):
@@ -39,6 +39,8 @@ class BaseCrawler(object):
             for url in self.urls:
                 logger.info(f'fetching {url}')
                 html = self.fetch(url)
+                if not html:
+                    continue
                 time.sleep(.5)
                 yield from self.process(html, url)
         except RetryError:
