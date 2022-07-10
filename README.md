@@ -259,8 +259,8 @@ get random proxy 116.196.115.209:8080
 - LOG_DIR：日志相对路径
 - LOG_RUNTIME_FILE：运行日志文件名称
 - LOG_ERROR_FILE：错误日志文件名称
-- LOG_ROTATION: 日志记录周转周期或大小，见 [loguru - rotation](https://github.com/Delgan/loguru#easier-file-logging-with-rotation--retention--compression)
-- LOG_RETENTION: 日志保留日期，见 [loguru - retention](https://github.com/Delgan/loguru#easier-file-logging-with-rotation--retention--compression)
+- LOG_ROTATION: 日志记录周转周期或大小，默认 500MB，见 [loguru - rotation](https://github.com/Delgan/loguru#easier-file-logging-with-rotation--retention--compression)
+- LOG_RETENTION: 日志保留日期，默认 7 天，见 [loguru - retention](https://github.com/Delgan/loguru#easier-file-logging-with-rotation--retention--compression)
 - ENABLE_LOG_FILE：是否输出 log 文件，默认 true，如果设置为 false，那么 ENABLE_LOG_RUNTIME_FILE 和 ENABLE_LOG_ERROR_FILE 都不会生效
 - ENABLE_LOG_RUNTIME_FILE：是否输出 runtime log 文件，默认 true
 - ENABLE_LOG_ERROR_FILE：是否输出 error log 文件，默认 true
