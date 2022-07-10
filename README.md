@@ -115,7 +115,7 @@ export PROXYPOOL_REDIS_CONNECTION_STRING='redis://localhost'
 ```
 
 这里连接字符串的格式需要符合 `redis://[:password@]host[:port][/database]` 的格式，
-中括号参数可以省略，port默认是6379，database默认是0，密码默认为空。
+中括号参数可以省略，port 默认是 6379，database 默认是 0，密码默认为空。
 
 以上两种设置任选其一即可。
 
@@ -226,13 +226,12 @@ get random proxy 116.196.115.209:8080
 - ENABLE_GETTER：允许 Getter 启动，默认 true
 - ENABLE_SERVER：运行 Server 启动，默认 true
 
-
 ### 环境
 
 - APP_ENV：运行环境，可以设置 dev、test、prod，即开发、测试、生产环境，默认 dev
 - APP_DEBUG：调试模式，可以设置 true 或 false，默认 true
 - APP_PROD_METHOD: 正式环境启动应用方式，默认是`gevent`，
-  可选：`tornado`，`meinheld`（分别需要安装tornado或meinheld模块）
+  可选：`tornado`，`meinheld`（分别需要安装 tornado 或 meinheld 模块）
 
 ### Redis 连接
 
@@ -260,6 +259,8 @@ get random proxy 116.196.115.209:8080
 - LOG_DIR：日志相对路径
 - LOG_RUNTIME_FILE：运行日志文件名称
 - LOG_ERROR_FILE：错误日志文件名称
+- LOG_ROTATION: 日志记录周转周期或大小，见 [loguru - rotation](https://github.com/Delgan/loguru#easier-file-logging-with-rotation--retention--compression)
+- LOG_RETENTION: 日志保留日期，见 [loguru - retention](https://github.com/Delgan/loguru#easier-file-logging-with-rotation--retention--compression)
 - ENABLE_LOG_FILE：是否输出 log 文件，默认 true，如果设置为 false，那么 ENABLE_LOG_RUNTIME_FILE 和 ENABLE_LOG_ERROR_FILE 都不会生效
 - ENABLE_LOG_RUNTIME_FILE：是否输出 runtime log 文件，默认 true
 - ENABLE_LOG_ERROR_FILE：是否输出 error log 文件，默认 true

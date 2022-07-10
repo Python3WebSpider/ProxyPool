@@ -2,6 +2,7 @@ import platform
 from os.path import dirname, abspath, join
 from environs import Env
 from loguru import logger
+import shutil
 
 
 env = Env()
@@ -100,11 +101,15 @@ LOG_LEVEL_MAP = {
 }
 
 LOG_LEVEL = LOG_LEVEL_MAP.get(APP_ENV)
+LOG_ROTATION = env.str('LOG_ROTATION', '500MB')
+LOG_RETENTION = env.str('LOG_RETENTION', '1 week')
 
 if ENABLE_LOG_FILE:
     if ENABLE_LOG_RUNTIME_FILE:
         logger.add(env.str('LOG_RUNTIME_FILE', join(LOG_DIR, 'runtime.log')),
-                   level=LOG_LEVEL, rotation='1 week', retention='20 days')
+                   level=LOG_LEVEL, rotation=LOG_ROTATION, retention=LOG_RETENTION)
     if ENABLE_LOG_ERROR_FILE:
         logger.add(env.str('LOG_ERROR_FILE', join(LOG_DIR, 'error.log')),
-                   level='ERROR', rotation='1 week')
+                   level='ERROR', rotation=LOG_ROTATION)
+else:
+    shutil.rmtree(LOG_DIR, ignore_errors=True)

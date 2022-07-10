@@ -15,3 +15,4 @@ services:
     #   - proxypool/crawlers/private:/app/proxypool/crawlers/private
     environment:
       PROXYPOOL_REDIS_HOST: redis4proxypool
+      
