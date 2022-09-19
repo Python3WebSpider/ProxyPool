@@ -14,5 +14,5 @@ RUN apk update && apk add --no-cache libffi-dev openssl-dev libxslt-dev &&\
 WORKDIR /app
 COPY . .
 EXPOSE 5555
-VOLUME ["/app/proxypool/crawlers/private"]
+#VOLUME ["/app/proxypool/crawlers/private"]
 ENTRYPOINT ["supervisord", "-c", "supervisord.conf"]
