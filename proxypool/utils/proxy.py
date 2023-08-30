@@ -60,7 +60,10 @@ def convert_proxy_or_proxies(data):
             result.append(Proxy(host=host, port=int(port)))
         return result
     if isinstance(data, str) and is_valid_proxy(data):
-        host, port = data.split(':')
+        if is_auth_proxy(data):
+            host, port = extract_auth_proxy(data)
+        else:
+            host, port = data.split(':')
         return Proxy(host=host, port=int(port))
 
 
