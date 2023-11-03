@@ -84,6 +84,10 @@ TEST_DONT_SET_MAX_SCORE = env.bool('TEST_DONT_SET_MAX_SCORE', False)
 API_HOST = env.str('API_HOST', '0.0.0.0')
 API_PORT = env.int('API_PORT', 5555)
 API_THREADED = env.bool('API_THREADED', True)
+# add an api key to get proxy
+# need a header of `API-KEY` in get request to pass the authenticate
+# API_KEY='', do not need `API-KEY` header
+API_KEY = env.str('API_KEY', '')
 
 # flags of enable
 ENABLE_TESTER = env.bool('ENABLE_TESTER', True)
