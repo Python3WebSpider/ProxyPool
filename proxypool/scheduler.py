@@ -92,7 +92,7 @@ class Scheduler():
                 logger.error("unsupported APP_PROD_METHOD")
                 return
         else:
-            app.run(host=API_HOST, port=API_PORT, threaded=API_THREADED)
+            app.run(host=API_HOST, port=API_PORT, threaded=API_THREADED, use_reloader=False)
 
     def run(self):
         global tester_process, getter_process, server_process
