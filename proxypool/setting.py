@@ -53,9 +53,9 @@ REDIS_KEY = env.str('PROXYPOOL_REDIS_KEY', env.str(
     'REDIS_KEY', 'proxies:universal'))
 
 # definition of proxy scores
-PROXY_SCORE_MAX = 100
-PROXY_SCORE_MIN = 0
-PROXY_SCORE_INIT = 10
+PROXY_SCORE_MAX = env.int('PROXY_SCORE_MAX', 100)
+PROXY_SCORE_MIN = env.int('PROXY_SCORE_MIN', 0)
+PROXY_SCORE_INIT = env.int('PROXY_SCORE_INIT', 10)
 
 # definition of proxy number
 PROXY_NUMBER_MAX = 50000
@@ -77,11 +77,17 @@ TEST_ANONYMOUS = env.bool('TEST_ANONYMOUS', True)
 #     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.71 Safari/537.36',
 # })
 TEST_VALID_STATUS = env.list('TEST_VALID_STATUS', [200, 206, 302])
+# whether to set max score when one proxy is tested valid
+TEST_DONT_SET_MAX_SCORE = env.bool('TEST_DONT_SET_MAX_SCORE', False)
 
 # definition of api
 API_HOST = env.str('API_HOST', '0.0.0.0')
 API_PORT = env.int('API_PORT', 5555)
 API_THREADED = env.bool('API_THREADED', True)
+# add an api key to get proxy
+# need a header of `API-KEY` in get request to pass the authenticate
+# API_KEY='', do not need `API-KEY` header
+API_KEY = env.str('API_KEY', '')
 
 # flags of enable
 ENABLE_TESTER = env.bool('ENABLE_TESTER', True)
