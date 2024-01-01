@@ -56,7 +56,7 @@ def convert_proxy_or_proxies(data):
             if is_auth_proxy(item):
                 host, port = extract_auth_proxy(item)
             else:
-                host, port = item.split(':')
+                host, port, *_ = item.split(':')
             result.append(Proxy(host=host, port=int(port)))
         return result
     if isinstance(data, str) and is_valid_proxy(data):
