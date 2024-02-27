@@ -11,7 +11,7 @@ redis>=3.5.3,<4.0.0
 lxml>=4.6.5,<5.0.0
 fake_headers>=1.0.2,<2.0.0
 maxminddb_geolite2==2018.703
-gevent>=21.8.0,<22.0.0
+gevent>=21.8.0,<24.0.0
 tornado>=6.0,<7.0
 itsdangerous==0.24
 MarkupSafe<2.1.0

@@ -82,7 +82,7 @@ class Tester(object):
             logger.debug(f'testing proxies use cursor {cursor}, count {TEST_BATCH}')
             cursor, proxies = self.redis.batch(cursor, count=TEST_BATCH)
             if proxies:
-                tasks = [self.test(proxy) for proxy in proxies]
+                tasks = [self.loop.create_task(self.test(proxy)) for proxy in proxies]
                 self.loop.run_until_complete(asyncio.wait(tasks))
             if not cursor:
                 break
