@@ -2,7 +2,7 @@ import redis
 from proxypool.exceptions import PoolEmptyException
 from proxypool.schemas.proxy import Proxy
 from proxypool.setting import REDIS_CONNECTION_STRING, REDIS_HOST, REDIS_PORT, REDIS_PASSWORD, REDIS_DB, REDIS_KEY, PROXY_SCORE_MAX, PROXY_SCORE_MIN, \
-    PROXY_SCORE_INIT
+    PROXY_SCORE_INIT, PROXY_SCORE_RAND_MAX, PROXY_SCORE_RAND_MIN
 from random import choice
 from typing import List
 from loguru import logger
@@ -52,19 +52,19 @@ class RedisClient(object):
     def random(self) -> Proxy:
         """
         get random proxy
-        firstly try to get proxy with max score
-        if not exists, try to get proxy by rank
+        firstly try to get proxy with score of PROXY_SCORE_RAND_MAX ~ PROXY_SCORE_MAX
+        if not exists, try to get proxy with score of PROXY_SCORE_RAND_MIN ~ PROXY_SCORE_MAX
         if not exists, raise error
         :return: proxy, like 8.8.8.8:8
         """
         # try to get proxy with max score
         proxies = self.db.zrangebyscore(
-            REDIS_KEY, PROXY_SCORE_MAX, PROXY_SCORE_MAX)
+            REDIS_KEY, PROXY_SCORE_RAND_MAX, PROXY_SCORE_MAX)
         if len(proxies):
             return convert_proxy_or_proxies(choice(proxies))
         # else get proxy by rank
         proxies = self.db.zrevrange(
-            REDIS_KEY, PROXY_SCORE_MIN, PROXY_SCORE_MAX)
+            REDIS_KEY, PROXY_SCORE_RAND_MIN, PROXY_SCORE_MAX)
         if len(proxies):
             return convert_proxy_or_proxies(choice(proxies))
         # else raise error

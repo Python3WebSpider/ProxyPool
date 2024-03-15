@@ -4,7 +4,7 @@ from loguru import logger
 from proxypool.schemas import Proxy
 from proxypool.storages.redis import RedisClient
 from proxypool.setting import TEST_TIMEOUT, TEST_BATCH, TEST_URL, TEST_VALID_STATUS, TEST_ANONYMOUS, \
-    TEST_DONT_SET_MAX_SCORE
+    TEST_DONT_SET_MAX_SCORE, TEST_ALLWAYS_DECREASE_SCORE
 from aiohttp import ClientProxyConnectionError, ServerDisconnectedError, ClientOSError, ClientHttpProxyError
 from asyncio import TimeoutError
 
@@ -57,6 +57,9 @@ class Tester(object):
                     if response.status in TEST_VALID_STATUS:
                         if TEST_DONT_SET_MAX_SCORE:
                             logger.debug(f'proxy {proxy.string()} is valid, remain current score')
+                        elif TEST_ALLWAYS_DECREASE_SCORE:
+                            self.redis.decrease(proxy)
+                            logger.debug(f'proxy {proxy.string()} is valid, but still decrease score')
                         else:
                             self.redis.max(proxy)
                             logger.debug(f'proxy {proxy.string()} is valid, set max score')
