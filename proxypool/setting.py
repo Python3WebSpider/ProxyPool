@@ -56,10 +56,6 @@ REDIS_KEY = env.str('PROXYPOOL_REDIS_KEY', env.str(
 PROXY_SCORE_MAX = env.int('PROXY_SCORE_MAX', 100)
 PROXY_SCORE_MIN = env.int('PROXY_SCORE_MIN', 0)
 PROXY_SCORE_INIT = env.int('PROXY_SCORE_INIT', 10)
-# highest/lowest proxy scores that /random api should get.
-# default /random api get the max score proxy(if exists) or all proxies in pool
-PROXY_SCORE_RAND_MAX = env.int('PROXY_SCORE_RAND_MAX', PROXY_SCORE_MAX)
-PROXY_SCORE_RAND_MIN = env.int('PROXY_SCORE_RAND_MIN', PROXY_SCORE_MIN)
 
 # definition of proxy number
 PROXY_NUMBER_MAX = 50000
@@ -83,9 +79,6 @@ TEST_ANONYMOUS = env.bool('TEST_ANONYMOUS', True)
 TEST_VALID_STATUS = env.list('TEST_VALID_STATUS', [200, 206, 302])
 # whether to set max score when one proxy is tested valid
 TEST_DONT_SET_MAX_SCORE = env.bool('TEST_DONT_SET_MAX_SCORE', False)
-# whether to decrease the score even when one proxy is tested valid
-# use this param combined with proper PROXY_SCORE_XX params, can let you allways get the newest proxy with /random api
-TEST_ALLWAYS_DECREASE_SCORE = env.bool('TEST_ALLWAYS_DECREASE_SCORE', False)
 
 # definition of api
 API_HOST = env.str('API_HOST', '0.0.0.0')
