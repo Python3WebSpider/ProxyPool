@@ -1,6 +1,7 @@
 from flask import Flask, g, request
+from proxypool.exceptions import PoolEmptyException
 from proxypool.storages.redis import RedisClient
-from proxypool.setting import API_HOST, API_PORT, API_THREADED, API_KEY, IS_DEV
+from proxypool.setting import API_HOST, API_PORT, API_THREADED, API_KEY, IS_DEV, PROXY_RAND_KEY_DEGRADED
 import functools
 
 __all__ = ['app']
@@ -53,10 +54,19 @@ def index():
 @auth_required
 def get_proxy():
     """
-    get a random proxy
+    get a random proxy, can query the specific sub-pool according the (redis) key
+    if PROXY_RAND_KEY_DEGRADED is set to True, will get a universal random proxy if no proxy found in the sub-pool
     :return: get a random proxy
     """
+    key = request.args.get('key')
     conn = get_conn()
+    # return conn.random(key).string() if key else conn.random().string()
+    if key:
+        try:
+            return conn.random(key).string()
+        except PoolEmptyException:
+            if not PROXY_RAND_KEY_DEGRADED:
+                raise
     return conn.random().string()
 
 
@@ -67,8 +77,10 @@ def get_proxy_all():
     get a random proxy
     :return: get a random proxy
     """
+    key = request.args.get('key')
+
     conn = get_conn()
-    proxies = conn.all()
+    proxies = conn.all(key) if key else conn.all()
     proxies_string = ''
     if proxies:
         for proxy in proxies:
@@ -85,7 +97,8 @@ def get_count():
     :return: count, int
     """
     conn = get_conn()
-    return str(conn.count())
+    key = request.args.get('key')
+    return str(conn.count(key)) if key else conn.count()
 
 
 if __name__ == '__main__':

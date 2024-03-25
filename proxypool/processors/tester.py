@@ -7,6 +7,7 @@ from proxypool.setting import TEST_TIMEOUT, TEST_BATCH, TEST_URL, TEST_VALID_STA
     TEST_DONT_SET_MAX_SCORE
 from aiohttp import ClientProxyConnectionError, ServerDisconnectedError, ClientOSError, ClientHttpProxyError
 from asyncio import TimeoutError
+from proxypool.testers import __all__ as testers_cls
 
 EXCEPTIONS = (
     ClientProxyConnectionError,
@@ -30,6 +31,8 @@ class Tester(object):
         """
         self.redis = RedisClient()
         self.loop = asyncio.get_event_loop()
+        self.testers_cls = testers_cls
+        self.testers = [tester_cls() for tester_cls in self.testers_cls]
 
     async def test(self, proxy: Proxy):
         """
@@ -63,8 +66,33 @@ class Tester(object):
                     else:
                         self.redis.decrease(proxy)
                         logger.debug(f'proxy {proxy.string()} is invalid, decrease score')
+                # if independent tester class found, create new set of storage and do the extra test
+                for tester in self.testers:
+                    key = tester.key
+                    if self.redis.exists(proxy, key):
+                        test_url = tester.test_url
+                        headers = tester.headers()
+                        cookies = tester.cookies()
+                        async with session.get(test_url, proxy=f'http://{proxy.string()}',
+                                               timeout=TEST_TIMEOUT,
+                                               headers=headers,
+                                               cookies=cookies,
+                                               allow_redirects=False) as response:
+                            resp_text = await response.text()
+                            is_valid = await tester.parse(resp_text, test_url, proxy.string())
+                            if is_valid:
+                                if tester.test_dont_set_max_score:
+                                    logger.info(f'key[{key}] proxy {proxy.string()} is valid, remain current score')
+                                else:
+                                    self.redis.max(proxy, key, tester.proxy_score_max)
+                                    logger.info(f'key[{key}] proxy {proxy.string()} is valid, set max score')
+                            else:
+                                self.redis.decrease(proxy, tester.key, tester.proxy_score_min)
+                                logger.info(f'key[{key}] proxy {proxy.string()} is invalid, decrease score')
+
             except EXCEPTIONS:
                 self.redis.decrease(proxy)
+                [self.redis.decrease(proxy, tester.key, tester.proxy_score_min) for tester in self.testers]
                 logger.debug(f'proxy {proxy.string()} is invalid, decrease score')
 
     @logger.catch
