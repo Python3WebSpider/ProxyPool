@@ -56,6 +56,8 @@ REDIS_KEY = env.str('PROXYPOOL_REDIS_KEY', env.str(
 PROXY_SCORE_MAX = env.int('PROXY_SCORE_MAX', 100)
 PROXY_SCORE_MIN = env.int('PROXY_SCORE_MIN', 0)
 PROXY_SCORE_INIT = env.int('PROXY_SCORE_INIT', 10)
+# whether to get a universal random proxy if no proxy exists in the sub-pool identified by a specific key
+PROXY_RAND_KEY_DEGRADED = env.bool('TEST_ANONYMOUS', True)
 
 # definition of proxy number
 PROXY_NUMBER_MAX = 50000
