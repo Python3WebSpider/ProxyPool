@@ -74,12 +74,6 @@ proxypool    | 2020-02-19 17:09:46,596 INFO success: tester entered RUNNING stat
 
 这时候访问 [http://localhost:5555/random](http://localhost:5555/random) 即可获取一个随机可用代理。
 
-当然你也可以选择自己 Build，直接运行如下命令即可：
-
-```
-docker-compose -f build.yaml up
-```
-
 如果下载速度特别慢，可以自行修改 Dockerfile，修改：
 
 ```diff
@@ -346,11 +340,6 @@ class Daili66Crawler(BaseCrawler):
 ## 部署
 
 本项目提供了 Kubernetes 部署脚本，如需部署到 Kubernetes，请参考 [kubernetes](./kubernetes)。
-
-## 待开发
-
-- [ ] 前端页面管理
-- [ ] 使用情况统计分析
 
 如有一起开发的兴趣可以在 Issue 留言，非常感谢！
 
