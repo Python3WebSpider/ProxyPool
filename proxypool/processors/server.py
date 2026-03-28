@@ -1,3 +1,4 @@
+import hmac
 from flask import Flask, g, request
 from proxypool.exceptions import PoolEmptyException
 from proxypool.storages.redis import RedisClient
@@ -22,7 +23,7 @@ def auth_required(func):
         else:
             return {"message": "Please provide an API key in header"}, 400
         # Check if API key is correct and valid
-        if request.method == "GET" and api_key == API_KEY:
+        if request.method == "GET" and hmac.compare_digest(api_key, API_KEY):
             return func(*args, **kwargs)
         else:
             return {"message": "The provided API key is not valid"}, 403
