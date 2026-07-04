@@ -1,16 +1,16 @@
-FROM python:3.7-alpine AS build
+FROM python:3.11-slim AS build
 COPY requirements.txt .
-RUN apk update &&\
-    apk add --no-cache gcc g++ libffi-dev openssl-dev libxml2-dev libxslt-dev build-base musl-dev &&\
+RUN apt-get update &&\
+    apt-get install -y --no-install-recommends gcc g++ libxml2-dev libxslt1-dev &&\
     pip install -U pip &&\
-    pip install --timeout 30 --user --no-cache-dir --no-warn-script-location -r requirements.txt
+    pip install --timeout 60 --user --no-cache-dir --no-warn-script-location -r requirements.txt &&\
+    rm -rf /var/lib/apt/lists/*
 
-FROM python:3.7-alpine
+FROM python:3.11-slim
 ENV APP_ENV=prod
 ENV LOCAL_PKG="/root/.local"
 COPY --from=build ${LOCAL_PKG} ${LOCAL_PKG}
-RUN apk update && apk add --no-cache libffi-dev openssl-dev libxslt-dev &&\
-    ln -sf ${LOCAL_PKG}/bin/* /usr/local/bin/
+RUN ln -sf ${LOCAL_PKG}/bin/* /usr/local/bin/
 WORKDIR /app
 COPY . .
 EXPOSE 5555
