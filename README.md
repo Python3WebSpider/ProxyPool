@@ -259,6 +259,9 @@ get random proxy 116.196.115.209:8080
 - API_HOST：代理 Server 运行 Host，默认 0.0.0.0
 - API_PORT：代理 Server 运行端口，默认 5555
 - API_THREADED：代理 Server 是否使用多线程，默认 true
+- API_KEY：API 访问鉴权密钥，默认空（即不鉴权）。设置后，调用 `/random`、`/all`、`/count` 需在请求头携带 `API-KEY`，详见下方「安全性」说明
+
+> ⚠️ 安全提示：代理 Server 默认监听 `0.0.0.0` 且 `API_KEY` 默认为空，任何能访问该端口的人都可以调用 `/random`、`/all`、`/count`。如果将代理池**暴露到公网**，请务必设置 `API_KEY`，并配合防火墙/安全组限制来源。`key` 查询参数已做格式校验，仅允许字母、数字及 `_ : -`，最长 64 位。
 
 ### 日志
 
