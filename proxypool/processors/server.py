@@ -1,5 +1,6 @@
 import hmac
-from flask import Flask, g, request
+import re
+from flask import Flask, g, request, abort
 from proxypool.exceptions import PoolEmptyException
 from proxypool.storages.redis import RedisClient
 from proxypool.setting import API_HOST, API_PORT, API_THREADED, API_KEY, IS_DEV, PROXY_RAND_KEY_DEGRADED
@@ -10,6 +11,10 @@ __all__ = ['app']
 app = Flask(__name__)
 if IS_DEV:
     app.debug = True
+
+# allowed characters for the `key` query parameter that selects a redis sub-pool;
+# restricts to a safe charset to avoid probing arbitrary redis keys via the API
+VALID_KEY_PATTERN = re.compile(r'^[a-zA-Z0-9_:\-]{1,64}$')
 
 
 def auth_required(func):
@@ -41,6 +46,18 @@ def get_conn():
     return g.redis
 
 
+def get_request_key():
+    """
+    read the `key` query parameter and validate its format;
+    reject unexpected characters to avoid redis key probing/injection
+    :return: validated key or None
+    """
+    key = request.args.get('key')
+    if key and not VALID_KEY_PATTERN.match(key):
+        abort(400, description='invalid key parameter')
+    return key
+
+
 @app.route('/')
 @auth_required
 def index():
@@ -59,7 +76,7 @@ def get_proxy():
     if PROXY_RAND_KEY_DEGRADED is set to True, will get a universal random proxy if no proxy found in the sub-pool
     :return: get a random proxy
     """
-    key = request.args.get('key')
+    key = get_request_key()
     conn = get_conn()
     # return conn.random(key).string() if key else conn.random().string()
     if key:
@@ -78,7 +95,7 @@ def get_proxy_all():
     get a random proxy
     :return: get a random proxy
     """
-    key = request.args.get('key')
+    key = get_request_key()
 
     conn = get_conn()
     proxies = conn.all(key) if key else conn.all()
@@ -98,8 +115,8 @@ def get_count():
     :return: count, int
     """
     conn = get_conn()
-    key = request.args.get('key')
-    return str(conn.count(key)) if key else conn.count()
+    key = get_request_key()
+    return str(conn.count(key)) if key else str(conn.count())
 
 
 if __name__ == '__main__':
