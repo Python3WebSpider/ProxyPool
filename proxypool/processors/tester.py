@@ -4,7 +4,7 @@ from loguru import logger
 from proxypool.schemas import Proxy
 from proxypool.storages.redis import RedisClient
 from proxypool.setting import TEST_TIMEOUT, TEST_BATCH, TEST_URL, TEST_VALID_STATUS, TEST_ANONYMOUS, \
-    TEST_DONT_SET_MAX_SCORE
+    TEST_DONT_SET_MAX_SCORE, TEST_ANONYMOUS_URL
 from aiohttp import ClientProxyConnectionError, ServerDisconnectedError, ClientOSError, ClientHttpProxyError, \
     ClientResponseError, ContentTypeError
 from asyncio import TimeoutError
@@ -49,7 +49,7 @@ class Tester(object):
             # the proxy has the effect of hiding the real IP
             # logger.debug(f'TEST_ANONYMOUS {TEST_ANONYMOUS}')
             if TEST_ANONYMOUS:
-                url = 'https://httpbin.org/ip'
+                url = TEST_ANONYMOUS_URL
                 async with session.get(url, timeout=TEST_TIMEOUT) as response:
                     resp_json = await response.json()
                     origin_ip = resp_json['origin']
