@@ -129,12 +129,15 @@ class Scheduler():
             tester_process and tester_process.join()
             getter_process and getter_process.join()
             server_process and server_process.join()
-            logger.info(
-                f'tester is {"alive" if tester_process.is_alive() else "dead"}')
-            logger.info(
-                f'getter is {"alive" if getter_process.is_alive() else "dead"}')
-            logger.info(
-                f'server is {"alive" if server_process.is_alive() else "dead"}')
+            if tester_process:
+                logger.info(
+                    f'tester is {"alive" if tester_process.is_alive() else "dead"}')
+            if getter_process:
+                logger.info(
+                    f'getter is {"alive" if getter_process.is_alive() else "dead"}')
+            if server_process:
+                logger.info(
+                    f'server is {"alive" if server_process.is_alive() else "dead"}')
             logger.info('proxy terminated')
 
 
