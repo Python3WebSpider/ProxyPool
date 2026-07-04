@@ -5,6 +5,8 @@ from proxypool.exceptions import PoolEmptyException
 from proxypool.storages.redis import RedisClient
 from proxypool.setting import API_HOST, API_PORT, API_THREADED, API_KEY, IS_DEV, PROXY_RAND_KEY_DEGRADED
 import functools
+from random import choice, sample
+from proxypool.utils.geo import get_country_iso
 
 __all__ = ['app']
 
@@ -58,6 +60,20 @@ def get_request_key():
     return key
 
 
+def filter_proxies_by_area(proxies, area):
+    """
+    filter proxies by country iso code (e.g. 'CN', 'US'), case-insensitive;
+    proxies whose country cannot be resolved are excluded
+    :param proxies: list of Proxy
+    :param area: country iso code, or falsy to skip filtering
+    :return: filtered list of Proxy
+    """
+    if not area:
+        return proxies
+    area = area.upper()
+    return [proxy for proxy in proxies if get_country_iso(proxy.host) == area]
+
+
 @app.route('/')
 @auth_required
 def index():
@@ -74,11 +90,37 @@ def get_proxy():
     """
     get a random proxy, can query the specific sub-pool according the (redis) key
     if PROXY_RAND_KEY_DEGRADED is set to True, will get a universal random proxy if no proxy found in the sub-pool
+    can pass a `count` parameter to get multiple random proxies at once
+    can pass an `area` parameter to only get proxies from a country (iso code, e.g. CN)
     :return: get a random proxy
     """
     key = get_request_key()
+    count = request.args.get('count', type=int)
+    area = request.args.get('area')
     conn = get_conn()
     # return conn.random(key).string() if key else conn.random().string()
+    if area:
+        # area filtering needs the candidate set first, then filter by country
+        candidates = conn.all(key) if key else conn.all()
+        candidates = filter_proxies_by_area(candidates, area)
+        if not candidates and key and PROXY_RAND_KEY_DEGRADED:
+            candidates = filter_proxies_by_area(conn.all(), area)
+        if not candidates:
+            raise PoolEmptyException
+        if count and count > 1:
+            count = min(count, len(candidates))
+            return '\n'.join(proxy.string() for proxy in sample(candidates, count))
+        return choice(candidates).string()
+    if count and count > 1:
+        # return multiple random proxies, one per line
+        try:
+            proxies = conn.randoms(count, key) if key else conn.randoms(count)
+        except PoolEmptyException:
+            if key and PROXY_RAND_KEY_DEGRADED:
+                proxies = conn.randoms(count)
+            else:
+                raise
+        return '\n'.join(proxy.string() for proxy in proxies)
     if key:
         try:
             return conn.random(key).string()
@@ -92,13 +134,15 @@ def get_proxy():
 @auth_required
 def get_proxy_all():
     """
-    get a random proxy
-    :return: get a random proxy
+    get all proxies, optionally filtered by `area` (country iso code, e.g. CN)
+    :return: all proxies
     """
     key = get_request_key()
+    area = request.args.get('area')
 
     conn = get_conn()
     proxies = conn.all(key) if key else conn.all()
+    proxies = filter_proxies_by_area(proxies, area)
     proxies_string = ''
     if proxies:
         for proxy in proxies:

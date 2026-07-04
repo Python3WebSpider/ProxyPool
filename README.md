@@ -222,6 +222,27 @@ get random proxy 116.196.115.209:8080
 
 可以看到成功获取了代理，并请求 httpbin.org 验证了代理的可用性。
 
+### 获取多个代理
+
+如果一次需要多个代理，可以给 `/random` 接口传入 `count` 参数，一次返回多个随机代理（每行一个）：
+
+```
+GET http://localhost:5555/random?count=5
+```
+
+`count` 不传或为 1 时行为不变，仍返回单个代理；`count` 大于可用数量时返回全部可用代理。也可与 `key` 参数组合使用。
+
+### 按地区（国家）筛选代理
+
+可以给 `/random` 和 `/all` 接口传入 `area` 参数，按代理 IP 所属国家筛选（ISO 国家码，大小写不敏感），例如只获取国内（中国）代理：
+
+```
+GET http://localhost:5555/random?area=CN
+GET http://localhost:5555/all?area=CN
+```
+
+国家信息由内置的 GeoLite2 离线库解析，无法解析归属地的代理会被排除。`area` 可与 `count`、`key` 参数组合使用。
+
 ## 可配置项
 
 代理池可以通过设置环境变量来配置一些参数。

@@ -3,7 +3,7 @@ from proxypool.exceptions import PoolEmptyException
 from proxypool.schemas.proxy import Proxy
 from proxypool.setting import REDIS_CONNECTION_STRING, REDIS_HOST, REDIS_PORT, REDIS_PASSWORD, REDIS_DB, REDIS_KEY, PROXY_SCORE_MAX, PROXY_SCORE_MIN, \
     PROXY_SCORE_INIT
-from random import choice
+from random import choice, sample
 from typing import List
 from loguru import logger
 from proxypool.utils.proxy import is_valid_proxy, convert_proxy_or_proxies
@@ -69,6 +69,27 @@ class RedisClient(object):
             return convert_proxy_or_proxies(choice(proxies))
         # else raise error
         raise PoolEmptyException
+
+    def randoms(self, count, redis_key=REDIS_KEY, proxy_score_min=PROXY_SCORE_MIN, proxy_score_max=PROXY_SCORE_MAX) -> List[Proxy]:
+        """
+        get a batch of random proxies
+        firstly try to get proxies with max score,
+        if not enough, get proxies by rank (score from high to low)
+        if none exists, raise error
+        :param count: number of proxies to return
+        :return: list of proxies
+        """
+        # try to get proxies with max score first
+        proxies = self.db.zrangebyscore(
+            redis_key, proxy_score_max, proxy_score_max)
+        if len(proxies) < count:
+            # not enough max-score proxies, fall back to all proxies by rank
+            proxies = self.db.zrevrangebyscore(
+                redis_key, proxy_score_max, proxy_score_min)
+        if not proxies:
+            raise PoolEmptyException
+        count = min(count, len(proxies))
+        return convert_proxy_or_proxies(sample(proxies, count))
 
     def decrease(self, proxy: Proxy, redis_key=REDIS_KEY, proxy_score_min=PROXY_SCORE_MIN) -> int:
         """
