@@ -74,11 +74,23 @@ def get_proxy():
     """
     get a random proxy, can query the specific sub-pool according the (redis) key
     if PROXY_RAND_KEY_DEGRADED is set to True, will get a universal random proxy if no proxy found in the sub-pool
+    can pass a `count` parameter to get multiple random proxies at once
     :return: get a random proxy
     """
     key = get_request_key()
+    count = request.args.get('count', type=int)
     conn = get_conn()
     # return conn.random(key).string() if key else conn.random().string()
+    if count and count > 1:
+        # return multiple random proxies, one per line
+        try:
+            proxies = conn.randoms(count, key) if key else conn.randoms(count)
+        except PoolEmptyException:
+            if key and PROXY_RAND_KEY_DEGRADED:
+                proxies = conn.randoms(count)
+            else:
+                raise
+        return '\n'.join(proxy.string() for proxy in proxies)
     if key:
         try:
             return conn.random(key).string()
